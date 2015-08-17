@@ -1,7 +1,28 @@
 from pylons import config
+from paste.deploy.converters import asbool
 
 from ckanext.doi.api import datacite_api, ezid_api
 from ckanext.doi.exc import DOIAPITypeNotKnownError
+
+
+TEST_PREFIX = '10.5072'
+
+
+def get_test_mode():
+    """
+    Get test mode as boolean
+    @return:
+    """
+    return asbool(config.get("ckanext.doi.test_mode", True))
+
+
+def get_prefix():
+    """
+    Get the prefix to use for DOIs
+    @return: test prefix if we're in test mode, otherwise config prefix setting
+    """
+
+    return TEST_PREFIX if get_test_mode() else config.get("ckanext.doi.prefix")
 
 
 def get_api_type():

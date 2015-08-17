@@ -8,15 +8,27 @@ Copyright (c) 2013 'bens3'. All rights reserved.
 import os
 import abc
 import requests
-from requests import ConnectionError
 from pylons import config
 from xmltodict import unparse
-from ckanext.doi.datacite import get_endpoint
 from logging import getLogger
 import ckan.plugins as p
 from ckanext.doi.interfaces import IDoi
+import ckanext.doi.api
 
 log = getLogger(__name__)
+
+
+ENDPOINT = 'https://ezid.cdlib.org'
+TEST_ENDPOINT = 'https://test.datacite.org/mds'
+
+
+def get_endpoint():
+    """
+    Get the EZID endpoint
+    @return: test endpoint if we're in test mode
+    """
+    return TEST_ENDPOINT if ckanext.doi.api.get_test_mode() else ENDPOINT
+
 
 class DataCiteAPI(object):
 

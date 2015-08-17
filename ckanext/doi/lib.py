@@ -16,9 +16,8 @@ from requests.exceptions import HTTPError
 import ckan.model as model
 from ckan.lib import helpers as h
 import ckan.plugins as p
-from ckanext.doi.api import get_metadata_api, get_doi_api
+from ckanext.doi.api import get_metadata_api, get_doi_api, get_prefix
 from ckanext.doi.model.doi import DOI
-from ckanext.doi.datacite import get_prefix
 from ckanext.doi.interfaces import IDoi
 from ckanext.doi.exc import DOIMetadataException
 from ckanext.doi.helpers import package_get_year

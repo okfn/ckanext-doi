@@ -4,41 +4,11 @@ import logging
 
 import requests
 from pylons import config
-from paste.deploy.converters import asbool
+
 
 log = logging.getLogger(__name__)
 
-
-TEST_PREFIX = '10.5072'
-
 ENDPOINT = 'https://ezid.cdlib.org'
-TEST_ENDPOINT = 'https://test.datacite.org/mds'
-
-
-def get_test_mode():
-    """
-    Get test mode as boolean
-    @return:
-    """
-    return asbool(config.get("ckanext.doi.test_mode", True))
-
-
-def get_prefix():
-    """
-    Get the prefix to use for DOIs
-    @return: test prefix if we're in test mode, otherwise config prefix setting
-    """
-
-    return TEST_PREFIX if get_test_mode() else config.get("ckanext.doi.prefix")
-
-
-def get_endpoint():
-
-    """
-    Get the EZID endpoint
-    @return: test endpoint if we're in test mode
-    """
-    return TEST_ENDPOINT if get_test_mode() else ENDPOINT
 
 
 class EzidAPI(object):
@@ -51,7 +21,7 @@ class EzidAPI(object):
 
         account_name = config.get("ckanext.doi.account_name")
         account_password = config.get("ckanext.doi.account_password")
-        endpoint = os.path.join(get_endpoint(), self.path)
+        endpoint = os.path.join(ENDPOINT, self.path)
 
         try:
             path_extra = kwargs.pop('path_extra')
