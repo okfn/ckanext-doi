@@ -8,7 +8,7 @@ from ckan.tests import factories
 from ckanext.doi.api import get_doi_api
 from ckanext.doi.api import datacite_api, ezid_api
 import ckanext.doi.lib as doi_lib
-from ckanext.doi.exc import DOIAPITypeNotKnownError
+from ckanext.doi.exc import DOIAPITypeNotKnownError, DOIMetadataException
 
 log = getLogger(__name__)
 
@@ -51,7 +51,6 @@ class TestDOI(helpers.FunctionalTestBase):
     def test_doi_metadata(self):
         '''
         Test the creation and validation of metadata
-        :return:
         '''
         pkg = factories.Dataset(author='Ben')
 
@@ -66,10 +65,23 @@ class TestDOI(helpers.FunctionalTestBase):
         # mandatory field
         doi_lib.validate_metadata(metadata_dict)
 
+    def test_doi_metadata_missing_author(self):
+        '''Validating a DOI created from a package with no author will raise
+        an exception.'''
+        pkg = factories.Dataset()
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        # Build the metadata dict to pass to DataCite service
+        metadata_dict = doi_lib.build_metadata(pkg, doi)
+
+        # No author provided when creating dataset, so raise exception
+        assert_raises(DOIMetadataException, doi_lib.validate_metadata,
+                      metadata_dict)
+
     def test_get_doi_api_returns_correct_default_api_interface(self):
         '''Calling get_doi_api returns the correct api interface when nothing
         has been set for ckanext.doi.api_type'''
-
         # default api is DataCite.
         doi_api = get_doi_api()
         assert_true(isinstance(doi_api, datacite_api.DOIDataCiteAPI))
@@ -78,7 +90,6 @@ class TestDOI(helpers.FunctionalTestBase):
     def test_get_doi_api_returns_correct_config_set_api_interface(self):
         '''Calling get_doi_api will return the correct api interface when
         ckanext.doi.api_type has been set'''
-
         # api is the correct interface class for EZID
         doi_api = get_doi_api()
 
