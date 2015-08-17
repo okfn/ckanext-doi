@@ -19,6 +19,7 @@ doi_table = Table('doi', meta.metadata,
                   Column('published', types.DateTime, nullable=True),  # Date DOI was published to DataCite
 )
 
+
 class DOI(DomainObject):
     """
     DOI Object
@@ -29,10 +30,6 @@ class DOI(DomainObject):
 meta.mapper(DOI, doi_table, properties={
     'dataset': relation(model.Package,
                         backref=backref('doi', cascade='all, delete-orphan'),
-                        primaryjoin=doi_table.c.package_id.__eq__(Package.id)
-    )
-}
+                        primaryjoin=doi_table.c.package_id.__eq__(Package.id))
+    }
 )
-
-
-

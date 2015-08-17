@@ -16,7 +16,7 @@ from requests.exceptions import HTTPError
 import ckan.model as model
 from ckan.lib import helpers as h
 import ckan.plugins as p
-from ckanext.doi.api import MetadataDataCiteAPI, DOIDataCiteAPI
+from ckanext.doi.api import get_metadata_api, get_doi_api
 from ckanext.doi.model.doi import DOI
 from ckanext.doi.datacite import get_prefix
 from ckanext.doi.interfaces import IDoi
@@ -28,27 +28,32 @@ log = getLogger(__name__)
 
 def create_unique_identifier(package_id):
     """
-    Create a unique identifier, using the prefix and a random number: 10.5072/0044634
-    Checks the random number doesn't exist in the table or the datacite repository
+    Create a unique identifier, using the prefix and a random number:
+    10.5072/0044634
+
+    Checks the random number doesn't exist in the table or the datacite
+    repository
+
     All unique identifiers are created with
     @return:
     """
-    datacite_api = DOIDataCiteAPI()
+    doi_api = get_doi_api()
 
     while True:
 
-        identifier = os.path.join(get_prefix(), '{0:07}'.format(random.randint(1, 100000)))
+        identifier = os.path.join(get_prefix(),
+                                  '{0:07}'.format(random.randint(1, 100000)))
 
         # Check this identifier doesn't exist in the table
         if not Session.query(DOI).filter(DOI.identifier == identifier).count():
 
-            # And check against the datacite service
+            # And check against the api service
             try:
-                datacite_doi = datacite_api.get(identifier)
+                doi = doi_api.get(identifier)
             except HTTPError:
                 pass
             else:
-                if datacite_doi.text:
+                if doi.text:
                     continue
 
         doi = DOI(package_id=package_id, identifier=identifier)
@@ -76,13 +81,13 @@ def publish_doi(package_id, **kwargs):
     """
     identifier = kwargs.get('identifier')
 
-    metadata = MetadataDataCiteAPI()
+    metadata = get_metadata_api()
     metadata.upsert(**kwargs)
 
     # The ID of a dataset never changes, so use that for the URL
     url = os.path.join(get_site_url(), 'dataset', package_id)
 
-    doi = DOIDataCiteAPI()
+    doi = get_doi_api()
     r = doi.upsert(doi=identifier, url=url)
     assert r.status_code == 201, 'Operation failed ERROR CODE: %s' % r.status_code
     # If we have created the DOI, save it to the database
@@ -99,7 +104,7 @@ def publish_doi(package_id, **kwargs):
 def update_doi(package_id, **kwargs):
     doi = get_doi(package_id)
     kwargs['identifier'] = doi.identifier
-    metadata = MetadataDataCiteAPI()
+    metadata = get_metadata_api()
     metadata.upsert(**kwargs)
 
 

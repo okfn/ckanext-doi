@@ -1,58 +1,23 @@
-import paste.fixture
 from logging import getLogger
 from pylons import config
-import nose
-from sqlalchemy import create_engine
+from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
-import ckan
-import ckan.tests as tests
-import ckan.plugins as p
-import ckan.plugins.toolkit as toolkit
-import ckan.lib.create_test_data as ctd
-import ckan.model as model
-import ckan.config.middleware as middleware
-from nose.tools import assert_equal, assert_true, assert_false, assert_in, assert_raises, assert_is_not_none, assert_is_none, assert_is_instance
+from ckan.tests import helpers
+from ckan.tests import factories
+
+from ckanext.doi.api import get_doi_api
+from ckanext.doi.api import datacite_api, ezid_api
+import ckanext.doi.lib as doi_lib
+from ckanext.doi.exc import DOIAPITypeNotKnownError
 
 log = getLogger(__name__)
 
-class TestDOI(tests.WsgiAppCase):
+
+class TestDOI(helpers.FunctionalTestBase):
     """
     Test creating DOIs
     nosetests -s --ckan --with-pylons=/Users/bens3/Projects/NHM/DataPortal/etc/default/test-core.ini ckanext.doi
     """
-
-    context = None
-    engine = None
-
-    @classmethod
-    def setup_class(cls):
-        """Prepare the test"""
-
-        # Setup a test app
-        wsgiapp = middleware.make_app(config['global_conf'], **config)
-        cls.app = paste.fixture.TestApp(wsgiapp)
-
-        # Load plugins
-        p.load('doi')
-
-        #  We need to actually create a dataset as DOI has foreign key constraint to dataset table
-        ctd.CreateTestData.create()
-
-        cls.context = {'model': ckan.model,
-                       'session': ckan.model.Session,
-                       'user': ckan.model.User.get('testsysadmin').name}
-
-        cls.package = model.Package.get('annakarenina')
-        cls.package_dict = toolkit.get_action('package_show')(cls.context, {'id': cls.package.id})
-
-        # Add the author field
-        cls.package_dict['author'] = 'Ben'
-
-    @classmethod
-    def teardown_class(cls):
-        """Clean up"""
-        p.unload('doi')
-        model.repo.rebuild_db()
 
     def test_doi_config(self):
         """
@@ -61,70 +26,89 @@ class TestDOI(tests.WsgiAppCase):
         """
         account_name = config.get("ckanext.doi.account_name")
         account_password = config.get("ckanext.doi.account_password")
-        assert_is_not_none(account_name)
-        assert_is_not_none(account_password)
+        assert_false(account_name is None)
+        assert_false(account_password is None)
 
     def test_doi_create_identifier(self):
-        """
-        Test a DOI has been created with the package
-        We won't have tried pushing to the DataCite service
-        :return:
-        """
+        '''
+        Test a DOI has been created with the package.
+        '''
+        # creating the package should also create a DOI instance
+        pkg = factories.Dataset(author='Ben')
 
-        # Import now otherwise we get model creation errors
-        import ckanext.doi.lib as doi_lib
-
-        # Show the package - which will load the DOI
-        identifier = doi_lib.create_unique_identifier(self.package_dict['id'])
+        # let's get it
+        doi = doi_lib.get_doi(pkg['id'])
 
         # Make sure we have a DOI model
-        assert_is_instance(identifier, doi_lib.DOI)
+        assert_true(isinstance(doi, doi_lib.DOI))
 
         # And the package ID is correct
-        assert_equal(identifier.package_id, self.package_dict['id'])
+        assert_equal(doi.package_id, pkg['id'])
 
         # And published should be none
-        assert_is_none(identifier.published)
+        assert_true(doi.published is None)
 
     def test_doi_metadata(self):
-        """
+        '''
         Test the creation and validation of metadata
         :return:
-        """
+        '''
+        pkg = factories.Dataset(author='Ben')
 
-        import ckanext.doi.lib as doi_lib
-
-        doi = doi_lib.get_doi(self.package_dict['id'])
-
-        if not doi:
-            doi = doi_lib.create_unique_identifier(self.package_dict['id'])
+        doi = doi_lib.get_doi(pkg['id'])
 
         # Build the metadata dict to pass to DataCite service
-        metadata_dict = doi_lib.build_metadata(self.package_dict, doi)
+        metadata_dict = doi_lib.build_metadata(pkg, doi)
 
-        # Perform some basic checks against the data - we require at the very least
-        # title and author fields - they're mandatory in the DataCite Schema
-        # This will only be an issue if another plugin has removed a mandatory field
+        # Perform some basic checks against the data - we require at the very
+        # least title and author fields - they're mandatory in the DataCite
+        # Schema This will only be an issue if another plugin has removed a
+        # mandatory field
         doi_lib.validate_metadata(metadata_dict)
 
-    def test_doi_publish_datacite(self):
+    def test_get_doi_api_returns_correct_default_api_interface(self):
+        '''Calling get_doi_api returns the correct api interface when nothing
+        has been set for ckanext.doi.api_type'''
 
-        import ckanext.doi.lib as doi_lib
+        # default api is DataCite.
+        doi_api = get_doi_api()
+        assert_true(isinstance(doi_api, datacite_api.DOIDataCiteAPI))
 
-        doi = doi_lib.get_doi(self.package_dict['id'])
+    @helpers.change_config('ckanext.doi.api_type', 'ezid')
+    def test_get_doi_api_returns_correct_config_set_api_interface(self):
+        '''Calling get_doi_api will return the correct api interface when
+        ckanext.doi.api_type has been set'''
 
-        if not doi:
-            doi = doi_lib.create_unique_identifier(self.package_dict['id'])
+        # api is the correct interface class for EZID
+        doi_api = get_doi_api()
 
-        # Build the metadata dict to pass to DataCite service
-        metadata_dict = doi_lib.build_metadata(self.package_dict, doi)
+        assert_true(isinstance(doi_api, ezid_api.DOIEzidAPI))
 
-        # Perform some basic checks against the data - we require at the very least
-        # title and author fields - they're mandatory in the DataCite Schema
-        # This will only be an issue if another plugin has removed a mandatory field
-        doi_lib.validate_metadata(metadata_dict)
+    @helpers.change_config('ckanext.doi.api_type', 'notatrueinterface')
+    def test_get_doi_api_returns_correct_config_set_error_api_interface(self):
+        '''Calling get_doi_api with an inproper ckanext.doi.api_type set will
+        raise an exception.'''
 
-        doi_lib.publish_doi(self.package_dict['id'], **metadata_dict)
+        assert_raises(DOIAPITypeNotKnownError, get_doi_api)
+
+    # def test_doi_publish_datacite(self):
+
+    #     import ckanext.doi.lib as doi_lib
+
+    #     doi = doi_lib.get_doi(self.package_dict['id'])
+
+    #     if not doi:
+    #         doi = doi_lib.create_unique_identifier(self.package_dict['id'])
+
+    #     # Build the metadata dict to pass to DataCite service
+    #     metadata_dict = doi_lib.build_metadata(self.package_dict, doi)
+
+    #     # Perform some basic checks against the data - we require at the very least
+    #     # title and author fields - they're mandatory in the DataCite Schema
+    #     # This will only be an issue if another plugin has removed a mandatory field
+    #     doi_lib.validate_metadata(metadata_dict)
+
+    #     doi_lib.publish_doi(self.package_dict['id'], **metadata_dict)
     #
     # def create_dataset(self):
     #     """
@@ -136,10 +120,3 @@ class TestDOI(tests.WsgiAppCase):
     #     :return:
     #     """
     #     pass
-
-
-
-
-
-
-
