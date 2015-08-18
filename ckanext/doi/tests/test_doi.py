@@ -81,23 +81,23 @@ class TestDOI(helpers.FunctionalTestBase):
 
     def test_get_doi_api_returns_correct_default_api_interface(self):
         '''Calling get_doi_api returns the correct api interface when nothing
-        has been set for ckanext.doi.api_type'''
+        has been set for ckanext.doi.api_provider'''
         # default api is DataCite.
         doi_api = get_doi_api()
         assert_true(isinstance(doi_api, datacite_api.DOIDataCiteAPI))
 
-    @helpers.change_config('ckanext.doi.api_type', 'ezid')
+    @helpers.change_config('ckanext.doi.api_provider', 'ezid')
     def test_get_doi_api_returns_correct_config_set_api_interface(self):
         '''Calling get_doi_api will return the correct api interface when
-        ckanext.doi.api_type has been set'''
+        ckanext.doi.api_provider has been set'''
         # api is the correct interface class for EZID
         doi_api = get_doi_api()
 
         assert_true(isinstance(doi_api, ezid_api.DOIEzidAPI))
 
-    @helpers.change_config('ckanext.doi.api_type', 'notatrueinterface')
+    @helpers.change_config('ckanext.doi.api_provider', 'notatrueinterface')
     def test_get_doi_api_returns_correct_config_set_error_api_interface(self):
-        '''Calling get_doi_api with an inproper ckanext.doi.api_type set will
+        '''Calling get_doi_api with an inproper ckanext.doi.api_provider set will
         raise an exception.'''
 
         assert_raises(DOIAPITypeNotKnownError, get_doi_api)

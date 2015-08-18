@@ -1,9 +1,12 @@
 import os
 import abc
+import random
 import logging
 
 import requests
 from pylons import config
+
+import ckanext.doi.api
 
 
 log = logging.getLogger(__name__)
@@ -45,22 +48,27 @@ class EzidAPI(object):
         # Return the result
         return r
 
+    def make_identifier_id(self):
+        '''Make an identifier in the form 'FK20000000' '''
+        prefix = 'FK2' if ckanext.doi.api.get_test_mode() else ''
+        return '{1}{0:07}'.format(random.randint(1, 100000), prefix)
+
 
 class DOIEzidAPI(EzidAPI):
     """
     Calls to EZID DOI API
     """
-    path = 'doi'
+    path = 'id'
 
     def get(self, doi):
         """
         Get a specific DOI
-        URI: https://datacite.org/mds/doi/{doi} where {doi} is a specific DOI.
+        URI: http://ezid.cdlib.org/id/doi:{doi} where {doi} is a specific DOI.
 
         @param doi: DOI
         @return: This request returns an URL associated with a given DOI.
         """
-        r = self._call(path_extra=doi)
+        r = self._call(path_extra='doi:{0}'.format(doi))
         return r
 
     def list(self):

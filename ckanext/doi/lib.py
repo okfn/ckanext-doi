@@ -26,26 +26,27 @@ log = getLogger(__name__)
 
 
 def create_unique_identifier(package_id):
-    """
+    '''
     Create a unique identifier, using the prefix and a random number:
     10.5072/0044634
 
     Checks the random number doesn't exist in the table or the datacite
     repository
-
-    All unique identifiers are created with
-    @return:
-    """
+    '''
     doi_api = get_doi_api()
 
     while True:
+        # the api provider may have a make_identifier_id method, try it first,
+        # then fall back to default.
+        try:
+            identifier_id = doi_api.make_identifier_id()
+        except AttributeError:
+            identifier_id = '{0:07}'.format(random.randint(1, 100000))
 
-        identifier = os.path.join(get_prefix(),
-                                  '{0:07}'.format(random.randint(1, 100000)))
+        identifier = os.path.join(get_prefix(), identifier_id)
 
         # Check this identifier doesn't exist in the table
         if not Session.query(DOI).filter(DOI.identifier == identifier).count():
-
             # And check against the api service
             try:
                 doi = doi_api.get(identifier)
@@ -63,7 +64,6 @@ def create_unique_identifier(package_id):
 
 
 def publish_doi(package_id, **kwargs):
-
     """
     Publish a DOI to DataCite
 

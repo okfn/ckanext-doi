@@ -14,6 +14,6 @@ class DOIMetadataException(Exception):
 
 
 class DOIAPITypeNotKnownError(Exception):
-    '''Exception when ckanext.doi.api_type has been set to a value not known
+    '''Exception when ckanext.doi.api_provider has been set to a value not known
     by the api.get_*_api methods'''
     pass

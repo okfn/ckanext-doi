@@ -27,7 +27,7 @@ def get_prefix():
 
 def get_api_type():
     '''Get the api type to use from the config. Default is datacite.'''
-    return config.get('ckanext.doi.api_type', 'datacite')
+    return config.get('ckanext.doi.api_provider', 'datacite')
 
 
 def _get_api_interface_from_list(apis):
