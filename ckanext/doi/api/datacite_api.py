@@ -18,7 +18,7 @@ import ckanext.doi.api
 log = getLogger(__name__)
 
 
-ENDPOINT = 'https://ezid.cdlib.org'
+ENDPOINT = 'https://mds.datacite.org'
 TEST_ENDPOINT = 'https://test.datacite.org/mds'
 
 
