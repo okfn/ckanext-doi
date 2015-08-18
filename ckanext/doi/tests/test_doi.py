@@ -92,7 +92,6 @@ class TestDOI(helpers.FunctionalTestBase):
         ckanext.doi.api_provider has been set'''
         # api is the correct interface class for EZID
         doi_api = get_doi_api()
-
         assert_true(isinstance(doi_api, ezid_api.DOIEzidAPI))
 
     @helpers.change_config('ckanext.doi.api_provider', 'notatrueinterface')

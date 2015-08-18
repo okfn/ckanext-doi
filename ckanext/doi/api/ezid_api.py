@@ -7,6 +7,7 @@ import requests
 from pylons import config
 
 import ckanext.doi.api
+from ckanext.doi.api.mixins import MetadataToDataCiteXmlMixin
 
 
 log = logging.getLogger(__name__)
@@ -55,46 +56,82 @@ class EzidAPI(object):
 
 
 class DOIEzidAPI(EzidAPI):
-    """
+    '''
     Calls to EZID DOI API
-    """
+    '''
     path = 'id'
 
     def get(self, doi):
-        """
+        '''
         Get a specific DOI
         URI: http://ezid.cdlib.org/id/doi:{doi} where {doi} is a specific DOI.
 
         @param doi: DOI
         @return: This request returns an URL associated with a given DOI.
-        """
+        '''
         r = self._call(path_extra='doi:{0}'.format(doi))
         return r
 
-    def list(self):
-        """
-        list all DOIs
-        URI: https://datacite.org/mds/doi
+    # def list(self):
+    #     '''
+    #     list all DOIs
+    #     URI: https://datacite.org/mds/doi
 
-        @return: This request returns a list of all DOIs for the requesting data centre. There is no guaranteed order.
-        """
-        return self._call()
+    #     @return: This request returns a list of all DOIs for the requesting data centre. There is no guaranteed order.
+    #     '''
+    #     return self._call()
 
-    def upsert(self, doi, url):
-        """
-        URI: https://datacite.org/mds/doi
-        POST will mint new DOI if specified DOI doesn't exist. This method will attempt to update URL if you specify existing DOI. Standard domains and quota restrictions check will be performed. A Datacentre's doiQuotaUsed will be increased by 1. A new record in Datasets will be created.
+    # def upsert(self, doi, url):
+    #     '''
+    #     URI: https://datacite.org/mds/doi
+    #     POST will mint new DOI if specified DOI doesn't exist. This method will attempt to update URL if you specify existing DOI. Standard domains and quota restrictions check will be performed. A Datacentre's doiQuotaUsed will be increased by 1. A new record in Datasets will be created.
 
-        @param doi: doi to mint
-        @param url: url doi points to
-        @return:
-        """
-        return self._call(
-            # Send as data rather than params so it's posted as x-www-form-urlencoded
-            data={
-                'doi': doi,
-                'url': url
-            },
-            method='post',
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
-        )
+    #     @param doi: doi to mint
+    #     @param url: url doi points to
+    #     @return:
+    #     '''
+    #     return self._call(
+    #         # Send as data rather than params so it's posted as x-www-form-urlencoded
+    #         data={
+    #             'doi': doi,
+    #             'url': url
+    #         },
+    #         method='post',
+    #         headers={'Content-Type': 'application/x-www-form-urlencoded'}
+    #     )
+
+
+class MetadataEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):
+    '''
+    Calls to EZID metadata API
+    '''
+    path = 'metadata'
+
+    def get(self, doi):
+        '''
+        URI: https://datacite.org/mds/metadata/{doi} where {doi} is a specific DOI.
+        @param doi:
+        @return: The most recent version of metadata associated with a given DOI.
+        '''
+        return self._call(path_extra=doi)
+
+    def upsert(self, identifier, title, creator, publisher, publisher_year, **kwargs):
+        '''
+        URI: https://test.datacite.org/mds/metadata
+        This request stores new version of metadata. The request body must contain valid XML.
+        @param metadata_dict: dict to convert to xml
+        @return: URL of the newly stored metadata
+        '''
+        xml = self.metadata_to_xml(identifier, title, creator, publisher, publisher_year, **kwargs)
+        r = self._call(method='post', data=xml, headers={'Content-Type': 'application/xml'})
+        assert r.status_code == 201, 'Operation failed ERROR CODE: %s' % r.status_code
+        return r
+
+    def delete(self, doi):
+        '''
+        URI: https://test.datacite.org/mds/metadata/{doi} where {doi} is a specific DOI.
+        This request marks a dataset as 'inactive'.
+        @param doi: DOI
+        @return: Response code
+        '''
+        return self._call(path_extra=doi, method='delete')

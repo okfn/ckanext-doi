@@ -95,13 +95,13 @@ class DOIPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
                 if cmp(orig_metadata_dict, metadata_dict) != 0:
                     # Not the same, so we want to update the metadata
                     update_doi(package_id, **metadata_dict)
-                    h.flash_success('DataCite DOI metadata updated')
+                    h.flash_success('DOI metadata updated')
 
                 # TODO: If editing a dataset older than 5 days, create DOI revision
 
             # New DOI - publish to datacite
             else:
-                h.flash_success('DataCite DOI created')
+                h.flash_success('DOI created')
                 publish_doi(package_id, **metadata_dict)
 
         return pkg_dict

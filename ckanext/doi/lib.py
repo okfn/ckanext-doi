@@ -65,7 +65,7 @@ def create_unique_identifier(package_id):
 
 def publish_doi(package_id, **kwargs):
     """
-    Publish a DOI to DataCite
+    Publish a DOI to provider
 
     Need to create metadata first
     And then create DOI => URI association
@@ -80,8 +80,8 @@ def publish_doi(package_id, **kwargs):
     """
     identifier = kwargs.get('identifier')
 
-    metadata = get_metadata_api()
-    metadata.upsert(**kwargs)
+    metadata_api = get_metadata_api()
+    metadata_api.upsert(**kwargs)
 
     # The ID of a dataset never changes, so use that for the URL
     url = os.path.join(get_site_url(), 'dataset', package_id)
@@ -103,8 +103,8 @@ def publish_doi(package_id, **kwargs):
 def update_doi(package_id, **kwargs):
     doi = get_doi(package_id)
     kwargs['identifier'] = doi.identifier
-    metadata = get_metadata_api()
-    metadata.upsert(**kwargs)
+    metadata_api = get_metadata_api()
+    metadata_api.upsert(**kwargs)
 
 
 def get_doi(package_id):
