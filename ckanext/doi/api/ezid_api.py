@@ -54,7 +54,7 @@ class EzidAPI(object):
         return '{1}{0:07}'.format(random.randint(1, 100000), prefix)
 
 
-class DOIEzidAPI(EzidAPI):
+class DOIEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):
     '''
     Calls to EZID DOI API
     '''
@@ -68,8 +68,7 @@ class DOIEzidAPI(EzidAPI):
         @param doi: DOI
         @return: This request returns an URL associated with a given DOI.
         '''
-        r = self._call(path_extra='doi:{0}'.format(doi))
-        return r
+        return self._call(path_extra='doi:{0}'.format(doi))
 
     # def list(self):
     #     '''
@@ -103,22 +102,6 @@ class DOIEzidAPI(EzidAPI):
     #         method='post',
     #         headers={'Content-Type': 'application/x-www-form-urlencoded'}
     #     )
-
-
-class MetadataEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):
-    '''
-    Calls to EZID metadata API
-    '''
-    path = 'id'
-
-    def get(self, doi):
-        '''
-        URI: https://ezid.cdlib.org/id/doi:{doi} where {doi} is a specific DOI.
-        @param doi:
-        @return: The most recent version of metadata associated with a given
-        DOI.
-        '''
-        return self._call(path_extra='doi:{0}'.format(doi))
 
     def upsert(self, identifier, title, creator, publisher, publisher_year,
                **kwargs):

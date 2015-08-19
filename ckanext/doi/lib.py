@@ -16,7 +16,7 @@ from requests.exceptions import HTTPError
 import ckan.model as model
 from ckan.lib import helpers as h
 import ckan.plugins as p
-from ckanext.doi.api import get_metadata_api, get_doi_api, get_prefix
+from ckanext.doi.api import get_doi_api, get_prefix
 from ckanext.doi.model.doi import DOI
 from ckanext.doi.interfaces import IDoi
 from ckanext.doi.exc import DOIMetadataException
@@ -80,8 +80,8 @@ def publish_doi(package_id, **kwargs):
     """
     identifier = kwargs.get('identifier')
 
-    metadata_api = get_metadata_api()
-    metadata_api.upsert(**kwargs)
+    doi_api = get_doi_api()
+    doi_api.upsert(**kwargs)
 
     # The ID of a dataset never changes, so use that for the URL
     url = os.path.join(get_site_url(), 'dataset', package_id)
@@ -103,8 +103,8 @@ def publish_doi(package_id, **kwargs):
 def update_doi(package_id, **kwargs):
     doi = get_doi(package_id)
     kwargs['identifier'] = doi.identifier
-    metadata_api = get_metadata_api()
-    metadata_api.upsert(**kwargs)
+    doi_api = get_doi_api()
+    doi_api.upsert(**kwargs)
 
 
 def get_doi(package_id):

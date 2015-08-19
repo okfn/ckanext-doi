@@ -6,7 +6,7 @@ from ckan.tests import helpers
 from ckan.tests import factories
 
 from ckanext.doi.api import get_doi_api
-from ckanext.doi.api import datacite_api, ezid_api
+from ckanext.doi.api import ezid_api
 import ckanext.doi.lib as doi_lib
 from ckanext.doi.exc import DOIAPITypeNotKnownError, DOIMetadataException
 
@@ -84,7 +84,7 @@ class TestDOI(helpers.FunctionalTestBase):
         has been set for ckanext.doi.api_provider'''
         # default api is DataCite.
         doi_api = get_doi_api()
-        assert_true(isinstance(doi_api, datacite_api.DOIDataCiteAPI))
+        assert_true(isinstance(doi_api, ezid_api.DOIEzidAPI))
 
     @helpers.change_config('ckanext.doi.api_provider', 'ezid')
     def test_get_doi_api_returns_correct_config_set_api_interface(self):
@@ -96,7 +96,7 @@ class TestDOI(helpers.FunctionalTestBase):
 
     @helpers.change_config('ckanext.doi.api_provider', 'notatrueinterface')
     def test_get_doi_api_returns_correct_config_set_error_api_interface(self):
-        '''Calling get_doi_api with an inproper ckanext.doi.api_provider set will
+        '''Calling get_doi_api with an improper ckanext.doi.api_provider set will
         raise an exception.'''
 
         assert_raises(DOIAPITypeNotKnownError, get_doi_api)
@@ -119,14 +119,3 @@ class TestDOI(helpers.FunctionalTestBase):
     #     doi_lib.validate_metadata(metadata_dict)
 
     #     doi_lib.publish_doi(self.package_dict['id'], **metadata_dict)
-    #
-    # def create_dataset(self):
-    #     """
-    #     TODO: Create a dataset and assert DOI exists
-    #
-    #     ctd.CreateTestData.create() creates using the model and bypasses
-    #     plugin hooks - so we'll create using CKAN actions and then text the DOI exists
-    #
-    #     :return:
-    #     """
-    #     pass

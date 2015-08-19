@@ -1,5 +1,6 @@
 import ckan.plugins.interfaces as interfaces
 
+
 class IDoi(interfaces.Interface):
     """
     Hook into IDoi
