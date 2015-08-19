@@ -30,7 +30,7 @@ def create_unique_identifier(package_id):
     Create a unique identifier, using the prefix and a random number:
     10.5072/0044634
 
-    Checks the random number doesn't exist in the table or the datacite
+    Check the random number doesn't exist in the table or the datacite
     repository
     '''
     doi_api = get_doi_api()

@@ -41,7 +41,8 @@ def _get_api_interface_from_list(apis):
 def get_metadata_api():
     '''Return the appropriate api interface class for the passed api type.'''
     apis = {
-        'datacite': datacite_api.MetadataDataCiteAPI
+        'datacite': datacite_api.MetadataDataCiteAPI,
+        'ezid': ezid_api.MetadataEzidAPI
     }
     return _get_api_interface_from_list(apis)
 

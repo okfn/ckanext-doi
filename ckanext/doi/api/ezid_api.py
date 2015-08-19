@@ -1,3 +1,4 @@
+import re
 import os
 import abc
 import random
@@ -42,8 +43,6 @@ class EzidAPI(object):
         # Add authorisation to request
         kwargs['auth'] = (account_name, account_password)
 
-        log.info("Calling %s:%s - %s", endpoint, method, kwargs)
-
         r = getattr(requests, method)(endpoint, **kwargs)
         r.raise_for_status()
         # Return the result
@@ -84,7 +83,12 @@ class DOIEzidAPI(EzidAPI):
     # def upsert(self, doi, url):
     #     '''
     #     URI: https://datacite.org/mds/doi
-    #     POST will mint new DOI if specified DOI doesn't exist. This method will attempt to update URL if you specify existing DOI. Standard domains and quota restrictions check will be performed. A Datacentre's doiQuotaUsed will be increased by 1. A new record in Datasets will be created.
+
+    #     POST will mint new DOI if specified DOI doesn't exist. This method
+    #     will attempt to update URL if you specify existing DOI. Standard
+    #     domains and quota restrictions check will be performed. A
+    #     Datacentre's doiQuotaUsed will be increased by 1. A new record in
+    #     Datasets will be created.
 
     #     @param doi: doi to mint
     #     @param url: url doi points to
@@ -105,26 +109,50 @@ class MetadataEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):
     '''
     Calls to EZID metadata API
     '''
-    path = 'metadata'
+    path = 'id'
 
     def get(self, doi):
         '''
-        URI: https://datacite.org/mds/metadata/{doi} where {doi} is a specific DOI.
+        URI: https://ezid.cdlib.org/id/doi:{doi} where {doi} is a specific DOI.
         @param doi:
-        @return: The most recent version of metadata associated with a given DOI.
+        @return: The most recent version of metadata associated with a given
+        DOI.
         '''
-        return self._call(path_extra=doi)
+        return self._call(path_extra='doi:{0}'.format(doi))
 
-    def upsert(self, identifier, title, creator, publisher, publisher_year, **kwargs):
+    def upsert(self, identifier, title, creator, publisher, publisher_year,
+               **kwargs):
         '''
-        URI: https://test.datacite.org/mds/metadata
-        This request stores new version of metadata. The request body must contain valid XML.
-        @param metadata_dict: dict to convert to xml
+        URI: https://ezid.cdlib.org/id/doi:{indentifier}
+
+        This request stores new version of metadata. The request body must
+        contain valid XML.
+
+        From: http://ezid.cdlib.org/doc/apidoc.html
+
+            Care must be taken to escape structural characters that appear in
+            element names and values, specifically, line terminators (both
+            newlines ("\n", U+000A) and carriage returns ("\r", U+000D)) and,
+            in element names, colons (":", U+003A). EZID employs percent-
+            encoding as the escaping mechanism, and thus percent signs ("%",
+            U+0025) must be escaped as well.
+
         @return: URL of the newly stored metadata
         '''
-        xml = self.metadata_to_xml(identifier, title, creator, publisher, publisher_year, **kwargs)
-        r = self._call(method='post', data=xml, headers={'Content-Type': 'application/xml'})
-        assert r.status_code == 201, 'Operation failed ERROR CODE: %s' % r.status_code
+        def escape(s):
+            return re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), s)
+
+        xml = self.metadata_to_xml(identifier, title, creator, publisher,
+                                   publisher_year, **kwargs)
+
+        # anvl format requires escaping
+        anvl = "\n".join("%s: %s" % (escape(name), escape(value))
+                         for name, value
+                         in {'datacite': xml}.items()).encode("UTF-8")
+
+        r = self._call(path_extra='doi:{0}'.format(identifier), method='put',
+                       data=anvl, headers={'Content-Type': 'text/plain'})
+        # assert r.status_code == 201, 'Operation failed ERROR CODE: %s' % r.status_code
         return r
 
     def delete(self, doi):
