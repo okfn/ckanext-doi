@@ -19,10 +19,11 @@ setup(
 	install_requires=[],
 	entry_points=\
 	"""
-    [ckan.plugins]
+        [ckan.plugins]
     	doi=ckanext.doi.plugin:DOIPlugin
+        doi_dataset=ckanext.doi.plugin:DOIDatasetPlugin
 
-    [paste.paster_command]
+        [paste.paster_command]
         doi=ckanext.doi.commands.doi:DOICommand
 	""",
 )

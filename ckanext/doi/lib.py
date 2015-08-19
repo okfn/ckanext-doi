@@ -119,16 +119,17 @@ def update_doi(package_id, **kwargs):
 
 
 def get_doi(package_id):
+    '''Returns the local DOI object'''
     doi = Session.query(DOI).filter(DOI.package_id==package_id).first()
     return doi
 
 
 def get_site_url():
-    """
+    '''
     Get the site URL
     Try and use ckanext.doi.site_url but if that's not set use ckan.site_url
     @return:
-    """
+    '''
     site_url = config.get("ckanext.doi.site_url")
 
     if not site_url:

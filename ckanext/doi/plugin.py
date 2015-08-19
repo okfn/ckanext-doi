@@ -133,3 +133,55 @@ class DOIPlugin(p.SingletonPlugin):
             'now': now,
             'get_site_title': get_site_title
         }
+
+
+class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
+
+    '''
+    A drop-in plugin to add the DOI field to the dataset schema.
+    '''
+
+    p.implements(p.IDatasetForm)
+    p.implements(p.IConfigurer)
+
+    # IConfigurer
+
+    def update_config(self, config):
+        p.toolkit.add_template_directory(config, 'templates')
+
+    # IDatasetForm
+
+    def _modify_package_schema(self, schema):
+        schema.update({
+            'doi_identifier': [
+                p.toolkit.get_validator('ignore_missing'),
+                p.toolkit.get_converter('convert_to_extras')
+            ]
+        })
+        return schema
+
+    def create_package_schema(self):
+        schema = super(DOIDatasetPlugin, self).create_package_schema()
+        schema = self._modify_package_schema(schema)
+        return schema
+
+    def update_package_schema(self):
+        schema = super(DOIDatasetPlugin, self).update_package_schema()
+        schema = self._modify_package_schema(schema)
+        return schema
+
+    def show_package_schema(self):
+        schema = super(DOIDatasetPlugin, self).show_package_schema()
+        schema.update({
+            'doi_identifier': [
+                p.toolkit.get_converter('convert_from_extras'),
+                p.toolkit.get_validator('ignore_missing')
+            ]
+        })
+        return schema
+
+    def is_fallback(self):
+        return True
+
+    def package_types(self):
+        return []
