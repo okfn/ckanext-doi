@@ -4,27 +4,37 @@ ckanext-doi
 Overview
 --------
 
-CKAN extension for assigning a digital object identifier (DOI) to datasets, using the DataCite DOI service.
+CKAN extension for assigning a digital object identifier (DOI) to datasets, using the EZID DOI service.
 
 When a new dataset is created it is assigned a new DOI. This DOI will be in the format:
  
 http://dx.doi.org/[prefix]/[random 7 digit integer]
 
-If the new dataset is active and public, the DOI and metadata will be registered with DataCite.
+If the new dataset is active and public, the DOI and metadata will be registered with EZID.
  
-If the dataset is draft or private, the DOI will not be registered with DataCite.  When the dataset is made active & public, the DOI will be submitted. 
-This allows datasets to be embargoed, but still provides a DOi to be referenced in publications.     
+If the dataset is draft or private, the DOI will not be registered.  When the
+dataset is made active & public, the DOI will be submitted. This allows
+datasets to be embargoed, but still provides a DOI to be referenced in
+publications.
 
-You will need an account with a DataCite DOI service provider to use this extension.
+You will need an account with EZID DOI service provider to use this extension.
+
 
 Installation
 ------------
 
-This extension can be installed in the same way as any other - download it, activate it and enable the plugin. http://docs.ckan.org/en/latest/extensions/tutorial.html#installing-the-extension
+To install ckanext-doi, activate your CKAN virtualenv and do:
 
-However it will only work if you have signed up for an account with DataCite.  
+```sh
+git clone https://github.com/okfn/ckanext-doi.git
+cd ckanext-doi
+python setup.py develop
+pip install -r requirements.txt
+```
 
-You will need a development / test account to use this plugin in test mode.  And to mint active DOIs you will need a live DataCite account.
+It will only work if you have signed up for an account with EZID.  
+
+You will need a development / test account to use this plugin in test mode.
 
 
 DOI Metadata
@@ -54,11 +64,6 @@ a DOIMetadataException if the title or author fields do not exist.
 It is recommended plugins implementing DOIs add additional validation checks to their schema.
 
 
-This plugin implements a build_metadata interface, so the metadata can be customised.
- 
-See [Natural History Museum extension](https://github.com/NaturalHistoryMuseum/ckanext-nhm) for an implementation of this interface. 
-
-
 Configuration
 -------------
 
@@ -83,53 +88,10 @@ http://[site_url]/datatset/package_id
 If site_url is not set, ckan.site_url will be used instead.
 
 
-If test mode is set to true, the DOIs will use the DataCite test prefix 10.5072
+If test mode is set to true, the DOIs will use the EZID test prefix 10.5072/FR2
 
 To delete all test prefixes, use the command:
 
 ```python
 paster doi delete-tests -c /etc/ckan/default/development.ini
 ```
-
-Releases
---------
-
-### 0.1
-
-Initial release
-
-### 0.2
-
-A DOI will be created regardless od Dataset status. 
-Only when a dataset is active and public will the DOI and MetaData be published to DataCite.
-
-Removed locking of DOI metadata fields after 10 days.  This is an interim solution before implementing DOI versioning. 
-
-Added build_metadata interface (and moved custom NHM metadata fields to ckanext-nhm).
-
-Added schema migration command.r
-
-
-Upgrade notes
--------------
-
-### 0.2
-
-Requires a schema change 001 & 002 - adds DOI published date and removes DOI created columns. See ckanext.doi.migration
-
-Run with:
-
-```python
-paster doi upgrade-db -c /etc/ckan/default/development.ini
-```
-
-Roadmap
--------
-
-Features planned for development.
-
-1. DOI versioning - allow option to create a new DOI on update (or if core metadata fields are updated).  This new DOI will be linked to the master/original DOI.
-
-2. Embargoed for set length of time. User can select date on which the dataset is to be made public, and the DOI submitted to DataCite. 
- 
-3. Tests. There are no tests.
