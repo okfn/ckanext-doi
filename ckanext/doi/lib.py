@@ -10,12 +10,15 @@ import random
 import datetime
 import itertools
 from logging import getLogger
-from ckan.model import Session
+
 from pylons import config
 from requests.exceptions import HTTPError
+
+from ckan.model import Session
 import ckan.model as model
 from ckan.lib import helpers as h
 import ckan.plugins as p
+
 from ckanext.doi.api import get_doi_api, get_prefix
 from ckanext.doi.model.doi import DOI
 from ckanext.doi.interfaces import IDoi
@@ -64,11 +67,9 @@ def create_unique_identifier(package_id):
 
 
 def publish_doi(package_id, **kwargs):
-    """
+    '''
     Publish a DOI to provider
 
-    Need to create metadata first
-    And then create DOI => URI association
     See MetadataDataCiteAPI.metadata_to_xml for param information
     @param package_id:
     @param kwargs contains metadata:
@@ -76,35 +77,45 @@ def publish_doi(package_id, **kwargs):
         @param creator:
         @param publisher:
         @param publisher_year:
-    @return: request response
-    """
+    '''
     identifier = kwargs.get('identifier')
 
     doi_api = get_doi_api()
-    doi_api.upsert(**kwargs)
 
     # The ID of a dataset never changes, so use that for the URL
     url = os.path.join(get_site_url(), 'dataset', package_id)
 
-    doi = get_doi_api()
-    r = doi.upsert(doi=identifier, url=url)
-    assert r.status_code == 201, 'Operation failed ERROR CODE: %s' % r.status_code
-    # If we have created the DOI, save it to the database
-    if r.text == 'OK':
-        # Update status for this package and identifier
-        num_affected = Session.query(DOI).filter_by(package_id=package_id, identifier=identifier).update({"published": datetime.datetime.now()})
-        # Raise an error if update has failed - should never happen unless
-        # DataCite and local db get out of sync - in which case requires investigating
-        assert num_affected == 1, 'Updating local DOI failed'
+    try:
+        r = doi_api.create(url=url, **kwargs)
+    except HTTPError as e:
+        log.error('Publishing DOI for package {0} failed with error: {1}'
+                  .format(package_id, e.message))
+        raise e
 
-    log.debug('Created new DOI for package %s' % package_id)
+    # If we have created the DOI, save it to the database
+    if r.status_code == 201:
+        # Update status for this package and identifier
+        num_affected = Session.query(DOI) \
+                            .filter_by(package_id=package_id,
+                                       identifier=identifier) \
+                            .update({"published": datetime.datetime.now()})
+        # Raise an error if update has failed - should never happen unless
+        # DataCite and local db get out of sync - in which case requires
+        # investigating
+        assert num_affected == 1, 'Updating local DOI failed'
 
 
 def update_doi(package_id, **kwargs):
+    '''Updates the DOI metadata'''
     doi = get_doi(package_id)
     kwargs['identifier'] = doi.identifier
     doi_api = get_doi_api()
-    doi_api.upsert(**kwargs)
+    try:
+        doi_api.update(**kwargs)
+    except HTTPError as e:
+        log.error('Could not update DOI for package {0}. ' +
+                  'Failed with error: {1}'.format(package_id, e.message))
+        raise e
 
 
 def get_doi(package_id):

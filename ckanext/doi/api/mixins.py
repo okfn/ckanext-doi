@@ -8,7 +8,7 @@ from ckanext.doi.interfaces import IDoi
 class MetadataToDataCiteXmlMixin(object):
 
     '''Provide a static method to transform passed metadata to XML that
-    adhers to the DataCite Metadata Scheme schema.'''
+    adheres to the DataCite Metadata Scheme schema.'''
 
     @staticmethod
     def metadata_to_xml(identifier, title, creator, publisher, publisher_year,

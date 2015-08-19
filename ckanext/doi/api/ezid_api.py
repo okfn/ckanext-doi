@@ -103,13 +103,15 @@ class DOIEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):
     #         headers={'Content-Type': 'application/x-www-form-urlencoded'}
     #     )
 
-    def upsert(self, identifier, title, creator, publisher, publisher_year,
-               **kwargs):
+    def _create_or_update(self, method, identifier, title, creator, publisher,
+                          publisher_year, url=None, **kwargs):
         '''
-        URI: https://ezid.cdlib.org/id/doi:{indentifier}
+        URI: https://ezid.cdlib.org/id/doi:{identifier}
 
         This request stores new version of metadata. The request body must
-        contain valid XML.
+        contain valid XML. This method is the same for creating or updating,
+        as determined by the http method used (put for create, post for
+        update).
 
         From: http://ezid.cdlib.org/doc/apidoc.html
 
@@ -119,24 +121,43 @@ class DOIEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):
             in element names, colons (":", U+003A). EZID employs percent-
             encoding as the escaping mechanism, and thus percent signs ("%",
             U+0025) must be escaped as well.
-
-        @return: URL of the newly stored metadata
         '''
         def escape(s):
             return re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), s)
 
-        xml = self.metadata_to_xml(identifier, title, creator, publisher,
-                                   publisher_year, **kwargs)
+        metadata_xml = self.metadata_to_xml(identifier, title, creator,
+                                            publisher, publisher_year,
+                                            **kwargs)
 
-        # anvl format requires escaping
+        data = {
+            'datacite': metadata_xml,
+        }
+        if url is not None:
+            data.update({'_target': url})
+
+        # data in anvl format requires escaping
         anvl = "\n".join("%s: %s" % (escape(name), escape(value))
-                         for name, value
-                         in {'datacite': xml}.items()).encode("UTF-8")
+                         for name, value in data.items()).encode("UTF-8")
 
-        r = self._call(path_extra='doi:{0}'.format(identifier), method='put',
+        r = self._call(path_extra='doi:{0}'.format(identifier), method=method,
                        data=anvl, headers={'Content-Type': 'text/plain'})
-        # assert r.status_code == 201, 'Operation failed ERROR CODE: %s' % r.status_code
         return r
+
+    def create(self, url, identifier, title, creator, publisher,
+               publisher_year, **kwargs):
+        '''
+        Create a metadata entry on EZID.
+        '''
+        return self._create_or_update('put', identifier, title, creator,
+                                      publisher, publisher_year, url, **kwargs)
+
+    def update(self, identifier, title, creator, publisher, publisher_year,
+               **kwargs):
+        '''
+        Update an existing entry on EZID.
+        '''
+        return self._create_or_update('post', identifier, title, creator,
+                                      publisher, publisher_year, **kwargs)
 
     def delete(self, doi):
         '''
