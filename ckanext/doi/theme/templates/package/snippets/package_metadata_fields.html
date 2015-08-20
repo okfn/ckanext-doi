@@ -17,6 +17,7 @@
 {% endblock %}
 
 {% block package_metadata_fields %}
-    {{ form.input('doi', label=_('DOI Identifier'), id='field-doi', placeholder=_('custom text'), value=data.doi, error=errors.doi, classes=['control-medium']) }}
+    {{ form.input('doi_identifier', label=_('DOI Identifier'), id='field-doi_identifier', placeholder=_('e.g. 10.5072/FK2000000'), value=data.doi_identifier, error=errors.doi_identifier, classes=['control-medium']) }}
+    <p class="help-block">Only edit this field if you have a predefined identifier created elsewhere for this Dataset. If left empty, a DOI Identifier will be created automatically.</p>
     {{ super() }}
 {% endblock %}

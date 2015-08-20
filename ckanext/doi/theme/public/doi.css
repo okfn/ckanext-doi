@@ -1,0 +1,16 @@
+.form-horizontal .help-block {
+  margin-left: 130px;
+  margin-bottom: 1em;
+  margin-top: -15px;
+  padding-top: 0;
+}
+@media (max-width: 767px) {
+  .form-horizontal .help-block {
+    margin-left: 180px;
+  }
+}
+@media (max-width: 480px) {
+  .form-horizontal .help-block {
+    margin-left: 0;
+  }
+}
