@@ -28,7 +28,7 @@ Add DataCite DOI data to the additional_info section
 {% endblock %}
 
 {% block package_additional_info %}
-    {% if pkg.doi %}
+    {% if pkg.doi_identifier %}
         {% snippet "doi/snippets/package_citation.html", pkg_dict=pkg %}
     {% endif %}
     {{ super() }}

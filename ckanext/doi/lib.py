@@ -28,6 +28,15 @@ from ckanext.doi.helpers import package_get_year
 log = getLogger(__name__)
 
 
+def create_doi_from_identifier(package_id, identifier):
+    '''Can be called when an identifier has already been created elsewhere.
+    Does not ensure the identifier is unique'''
+    doi = DOI(package_id=package_id, identifier=identifier)
+    Session.add(doi)
+    Session.commit()
+    return doi
+
+
 def create_unique_identifier(package_id):
     '''
     Create a unique identifier, using the prefix and a random number:
@@ -59,9 +68,7 @@ def create_unique_identifier(package_id):
                 if doi.text:
                     continue
 
-        doi = DOI(package_id=package_id, identifier=identifier)
-        Session.add(doi)
-        Session.commit()
+        doi = create_doi_from_identifier(package_id, identifier)
 
         return doi
 

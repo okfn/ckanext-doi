@@ -14,25 +14,23 @@ log = getLogger(__name__)
 
 
 class TestDOI(helpers.FunctionalTestBase):
-    """
+    '''
     Test creating DOIs
     nosetests -s --ckan --with-pylons=/Users/bens3/Projects/NHM/DataPortal/etc/default/test-core.ini ckanext.doi
-    """
+    '''
 
     def test_doi_config(self):
-        """
+        '''
         Test we are receiving params from the config file
         :return:
-        """
+        '''
         account_name = config.get("ckanext.doi.account_name")
         account_password = config.get("ckanext.doi.account_password")
         assert_false(account_name is None)
         assert_false(account_password is None)
 
     def test_doi_create_identifier(self):
-        '''
-        Test a DOI has been created with the package.
-        '''
+        '''Test a DOI has been created with the package.'''
         # creating the package should also create a DOI instance
         pkg = factories.Dataset(author='Ben')
 
@@ -47,6 +45,28 @@ class TestDOI(helpers.FunctionalTestBase):
 
         # And published should be none
         assert_true(doi.published is None)
+
+    def test_doi_created_when_field_not_defined(self):
+        '''On package creation, a DOI object should be created and
+        doi_identifier field should be populated with the DOI id.'''
+        pkg = factories.Dataset(author='Ben')
+
+        retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_equal(doi.identifier, retrieved_pkg['doi_identifier'])
+
+    def test_doi_created_when_field_is_defined(self):
+        '''On package creation, DOI object should be created with the
+        doi_identifier field value.'''
+        pkg = factories.Dataset(author='Ben', doi_identifier='example-doi-id')
+
+        retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_equal(doi.identifier, retrieved_pkg['doi_identifier'])
 
     def test_doi_metadata(self):
         '''
@@ -100,6 +120,7 @@ class TestDOI(helpers.FunctionalTestBase):
         raise an exception.'''
 
         assert_raises(DOIAPITypeNotKnownError, get_doi_api)
+
 
     # def test_doi_publish_datacite(self):
 

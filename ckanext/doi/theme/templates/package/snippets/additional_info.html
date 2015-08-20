@@ -1,10 +1,10 @@
 {% ckan_extends %}
 
 {% block extras scoped %}
-  {% if pkg_dict['doi'] %}
+  {% if pkg_dict['doi_identifier'] %}
     <tr>
       <th scope="row" class="dataset-label">{{ _("DOI Identifier") }}</th>
-      <td class="dataset-details">{{ pkg_dict['doi'] }}</td>
+      <td class="dataset-details">{{ pkg_dict['doi_identifier'] }}</td>
     </tr>
   {% endif %}
   {{ super() }}

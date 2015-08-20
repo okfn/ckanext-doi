@@ -6,7 +6,10 @@ import ckan.plugins as p
 import ckan.logic as logic
 from ckan.lib import helpers as h
 from ckanext.doi.model import doi as doi_model
-from ckanext.doi.lib import get_doi, publish_doi, update_doi, create_unique_identifier, get_site_url, build_metadata, validate_metadata
+from ckanext.doi.lib import (get_doi, publish_doi,
+                             update_doi, create_doi_from_identifier,
+                             create_unique_identifier, get_site_url,
+                             build_metadata, validate_metadata)
 from ckanext.doi.helpers import package_get_year, now, get_site_title
 
 get_action = logic.get_action
@@ -38,7 +41,21 @@ class DOIPlugin(p.SingletonPlugin):
         # Add templates
         p.toolkit.add_template_directory(config, 'theme/templates')
 
+        p.toolkit.add_public_directory(config, 'theme/public')
+
     # IPackageController
+
+    def _create_unique_identifier(self, context, pkg_id):
+        '''Calls create_unique_identifier and ensures pkg['doi_identifier'] is
+        also set.'''
+        doi = create_unique_identifier(pkg_id)
+        # Don't want after_update to run after this patch
+        context.update({'no_after_update': True})
+        # Add new doi_identifier to package
+        get_action('package_patch')(context,
+                                    {'id': pkg_id,
+                                     'doi_identifier': doi.identifier})
+        return doi
 
     def after_create(self, context, pkg_dict):
         '''
@@ -49,23 +66,43 @@ class DOIPlugin(p.SingletonPlugin):
         @param pkg_dict:
         @return:
         '''
-        create_unique_identifier(pkg_dict['id'])
+
+        # If there's no user defined doi_identifier, create one.
+        if not pkg_dict.get('doi_identifier'):
+            self._create_unique_identifier(context, pkg_dict['id'])
+        else:
+            create_doi_from_identifier(pkg_dict['id'],
+                                       pkg_dict['doi_identifier'])
 
     def after_update(self, context, pkg_dict):
         '''
         Dataset has been created / updated. Check status of the dataset to
-        determine if we should publish DOI to datacite network
+        determine if we should publish DOI.
 
         @param pkg_dict:
         @return: pkg_dict
         '''
 
+        # We might be short circuiting the after_update
+        if context.get('no_after_update'):
+            return pkg_dict
+
+        package_id = pkg_dict['id']
+
+        # Load the local DOI
+        doi = get_doi(package_id)
+
+        # If we don't have a DOI, create one.
+        # This could happen if the DOI module is enabled after a dataset
+        # has been created, or if a user has added their own on dataset
+        # creation, but subsequently deleted it.
+        if not doi:
+            doi = self._create_unique_identifier(context, pkg_dict['id'])
+
         # Is this active and public? If so we need to make sure we have an
         # active DOI
         if pkg_dict.get('state', 'active') == 'active' \
            and not pkg_dict.get('private', False):
-
-            package_id = pkg_dict['id']
 
             # Load the original package, so we can determine if user has
             # changed any fields
@@ -75,16 +112,6 @@ class DOIPlugin(p.SingletonPlugin):
             # Metadata created isn't populated in pkg_dict - so copy from the
             # original
             pkg_dict['metadata_created'] = orig_pkg_dict['metadata_created']
-
-            # Load the local DOI
-            doi = get_doi(package_id)
-
-            # If we don't have a DOI, create one
-            # This could happen if the DOI module is enabled after a dataset
-            # has been creates
-
-            if not doi:
-                doi = create_unique_identifier(package_id)
 
             # Build the metadata dict to pass to DataCite service
             metadata_dict = build_metadata(pkg_dict, doi)
@@ -121,7 +148,6 @@ class DOIPlugin(p.SingletonPlugin):
         # Load the DOI ready to display
         doi = get_doi(pkg_dict['id'])
         if doi:
-            pkg_dict['doi'] = doi.identifier
             pkg_dict['doi_status'] = True if doi.published else False
             pkg_dict['domain'] = get_site_url().replace('http://', '')
 
@@ -138,7 +164,7 @@ class DOIPlugin(p.SingletonPlugin):
 class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
 
     '''
-    A drop-in plugin to add the DOI field to the dataset schema.
+    A drop-in plugin to add a DOI field to the dataset schema.
     '''
 
     p.implements(p.IDatasetForm)
