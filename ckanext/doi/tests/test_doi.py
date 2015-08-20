@@ -1,6 +1,7 @@
 from logging import getLogger
 from pylons import config
-from nose.tools import assert_equal, assert_true, assert_false, assert_raises
+from nose.tools import (assert_equal, assert_true,
+                        assert_false, assert_raises, assert_not_equal)
 
 from ckan.tests import helpers
 from ckan.tests import factories
@@ -13,11 +14,7 @@ from ckanext.doi.exc import DOIAPITypeNotKnownError, DOIMetadataException
 log = getLogger(__name__)
 
 
-class TestDOI(helpers.FunctionalTestBase):
-    '''
-    Test creating DOIs
-    nosetests -s --ckan --with-pylons=/Users/bens3/Projects/NHM/DataPortal/etc/default/test-core.ini ckanext.doi
-    '''
+class TestDOICreate(helpers.FunctionalTestBase):
 
     def test_doi_config(self):
         '''
@@ -29,10 +26,10 @@ class TestDOI(helpers.FunctionalTestBase):
         assert_false(account_name is None)
         assert_false(account_password is None)
 
-    def test_doi_create_identifier(self):
+    def test_doi_auto_create_identifier(self):
         '''Test a DOI has been created with the package.'''
         # creating the package should also create a DOI instance
-        pkg = factories.Dataset(author='Ben')
+        pkg = factories.Dataset(author='Ben', manual_doi_identifier=False)
 
         # let's get it
         doi = doi_lib.get_doi(pkg['id'])
@@ -46,10 +43,18 @@ class TestDOI(helpers.FunctionalTestBase):
         # And published should be none
         assert_true(doi.published is None)
 
-    def test_doi_created_when_field_not_defined(self):
+    def test_doi_not_created_when_manual_checked(self):
+        '''If manual_doi_identifier is true, don't create a doi'''
+        pkg = factories.Dataset(author='Ben', manual_doi_identifier=True)
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is None)
+
+    def test_doi_auto_created_when_field_not_defined(self):
         '''On package creation, a DOI object should be created and
         doi_identifier field should be populated with the DOI id.'''
-        pkg = factories.Dataset(author='Ben')
+        pkg = factories.Dataset(author='Ben', manual_doi_identifier=False)
 
         retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
 
@@ -57,22 +62,39 @@ class TestDOI(helpers.FunctionalTestBase):
 
         assert_equal(doi.identifier, retrieved_pkg['doi_identifier'])
 
-    def test_doi_created_when_field_is_defined(self):
+    def test_doi_auto_created_when_field_is_defined(self):
         '''On package creation, DOI object should be created with the
-        doi_identifier field value.'''
-        pkg = factories.Dataset(author='Ben', doi_identifier='example-doi-id')
+        doi_identifier field value. A passed doi_identifier is ignored.'''
+        pkg = factories.Dataset(author='Ben', doi_identifier='example-doi-id',
+                                manual_doi_identifier=False)
 
         retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
 
         doi = doi_lib.get_doi(pkg['id'])
 
+        assert_not_equal(retrieved_pkg['doi_identifier'], 'example-doi-id')
+
         assert_equal(doi.identifier, retrieved_pkg['doi_identifier'])
+
+    def test_doi_not_created_when_field_is_defined_manual_checked(self):
+        '''On package creation, DOI object should not be created if
+        manual_doi_identifier is true.'''
+        pkg = factories.Dataset(author='Ben', doi_identifier='example-doi-id',
+                                manual_doi_identifier=True)
+
+        retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_equal(retrieved_pkg['doi_identifier'], 'example-doi-id')
+
+        assert_true(doi is None)
 
     def test_doi_metadata(self):
         '''
         Test the creation and validation of metadata
         '''
-        pkg = factories.Dataset(author='Ben')
+        pkg = factories.Dataset(author='Ben', manual_doi_identifier=False)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -81,14 +103,14 @@ class TestDOI(helpers.FunctionalTestBase):
 
         # Perform some basic checks against the data - we require at the very
         # least title and author fields - they're mandatory in the DataCite
-        # Schema This will only be an issue if another plugin has removed a
+        # Schema. This will only be an issue if another plugin has removed a
         # mandatory field
         doi_lib.validate_metadata(metadata_dict)
 
     def test_doi_metadata_missing_author(self):
         '''Validating a DOI created from a package with no author will raise
         an exception.'''
-        pkg = factories.Dataset()
+        pkg = factories.Dataset(manual_doi_identifier=False)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -99,10 +121,13 @@ class TestDOI(helpers.FunctionalTestBase):
         assert_raises(DOIMetadataException, doi_lib.validate_metadata,
                       metadata_dict)
 
+
+class TestDOIAPIInterface(object):
+
     def test_get_doi_api_returns_correct_default_api_interface(self):
         '''Calling get_doi_api returns the correct api interface when nothing
         has been set for ckanext.doi.api_provider'''
-        # default api is DataCite.
+        # default api is EZID.
         doi_api = get_doi_api()
         assert_true(isinstance(doi_api, ezid_api.DOIEzidAPI))
 

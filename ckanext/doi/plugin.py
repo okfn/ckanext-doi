@@ -7,9 +7,8 @@ import ckan.logic as logic
 from ckan.lib import helpers as h
 from ckanext.doi.model import doi as doi_model
 from ckanext.doi.lib import (get_doi, publish_doi,
-                             update_doi, create_doi_from_identifier,
-                             create_unique_identifier, get_site_url,
-                             build_metadata, validate_metadata)
+                             update_doi, create_unique_identifier,
+                             get_site_url, build_metadata, validate_metadata)
 from ckanext.doi.helpers import package_get_year, now, get_site_title
 
 get_action = logic.get_action
@@ -43,19 +42,18 @@ class DOIPlugin(p.SingletonPlugin):
 
         p.toolkit.add_public_directory(config, 'theme/public')
 
+        p.toolkit.add_resource('theme/fanstatic', 'doi')
+
     # IPackageController
 
-    def _create_unique_identifier(self, context, pkg_id):
-        '''Calls create_unique_identifier and ensures pkg['doi_identifier'] is
-        also set.'''
-        doi = create_unique_identifier(pkg_id)
+    def _update_pkg_doi(self, context, pkg_id, doi_identifier):
+        '''Update pkg['doi_identifier'] with the passed doi_identifier'''
         # Don't want after_update to run after this patch
         context.update({'no_after_update': True})
         # Add new doi_identifier to package
         get_action('package_patch')(context,
                                     {'id': pkg_id,
-                                     'doi_identifier': doi.identifier})
-        return doi
+                                     'doi_identifier': doi_identifier})
 
     def after_create(self, context, pkg_dict):
         '''
@@ -66,13 +64,10 @@ class DOIPlugin(p.SingletonPlugin):
         @param pkg_dict:
         @return:
         '''
-
-        # If there's no user defined doi_identifier, create one.
-        if not pkg_dict.get('doi_identifier'):
-            self._create_unique_identifier(context, pkg_dict['id'])
-        else:
-            create_doi_from_identifier(pkg_dict['id'],
-                                       pkg_dict['doi_identifier'])
+        if not pkg_dict.get('manual_doi_identifier'):
+            # create a doi and populate pkg.doi_identifier with it.
+            doi = create_unique_identifier(pkg_dict['id'])
+            self._update_pkg_doi(context, pkg_dict['id'], doi.identifier)
 
     def after_update(self, context, pkg_dict):
         '''
@@ -84,7 +79,8 @@ class DOIPlugin(p.SingletonPlugin):
         '''
 
         # We might be short circuiting the after_update
-        if context.get('no_after_update'):
+        if context.get('no_after_update') \
+           or pkg_dict.get('manual_doi_identifier'):
             return pkg_dict
 
         package_id = pkg_dict['id']
@@ -97,7 +93,11 @@ class DOIPlugin(p.SingletonPlugin):
         # has been created, or if a user has added their own on dataset
         # creation, but subsequently deleted it.
         if not doi:
-            doi = self._create_unique_identifier(context, pkg_dict['id'])
+            doi = create_unique_identifier(pkg_dict['id'])
+
+        # ensure doi.identifier and pkg['doi_identifier'] are the same
+        if doi.identifier != pkg_dict['doi_identifier']:
+            self._update_pkg_doi(context, pkg_dict['id'], doi.identifier)
 
         # Is this active and public? If so we need to make sure we have an
         # active DOI
@@ -168,17 +168,15 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
     '''
 
     p.implements(p.IDatasetForm)
-    p.implements(p.IConfigurer)
-
-    # IConfigurer
-
-    def update_config(self, config):
-        p.toolkit.add_template_directory(config, 'templates')
 
     # IDatasetForm
 
     def _modify_package_schema(self, schema):
         schema.update({
+            'manual_doi_identifier': [
+                p.toolkit.get_validator('boolean_validator'),
+                p.toolkit.get_converter('convert_to_extras')
+            ],
             'doi_identifier': [
                 p.toolkit.get_validator('ignore_missing'),
                 p.toolkit.get_converter('convert_to_extras')
@@ -199,6 +197,10 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
     def show_package_schema(self):
         schema = super(DOIDatasetPlugin, self).show_package_schema()
         schema.update({
+            'manual_doi_identifier': [
+                p.toolkit.get_converter('convert_from_extras'),
+                p.toolkit.get_validator('boolean_validator')
+            ],
             'doi_identifier': [
                 p.toolkit.get_converter('convert_from_extras'),
                 p.toolkit.get_validator('ignore_missing')
