@@ -1,7 +1,5 @@
-"""
-CKAN DOI Plugin
-"""
-from logging import getLogger
+import logging
+
 import ckan.plugins as p
 import ckan.logic as logic
 from ckan.lib import helpers as h
@@ -13,7 +11,7 @@ from ckanext.doi.helpers import package_get_year, now, get_site_title
 
 get_action = logic.get_action
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class DOIPlugin(p.SingletonPlugin):
@@ -173,6 +171,9 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
 
     def _modify_package_schema(self, schema):
         schema.update({
+            'author': [
+                p.toolkit.get_validator('not_empty')
+            ],
             'manual_doi_identifier': [
                 p.toolkit.get_validator('boolean_validator'),
                 p.toolkit.get_converter('convert_to_extras')
@@ -197,6 +198,9 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
     def show_package_schema(self):
         schema = super(DOIDatasetPlugin, self).show_package_schema()
         schema.update({
+            'author': [
+                p.toolkit.get_validator('not_empty')
+            ],
             'manual_doi_identifier': [
                 p.toolkit.get_converter('convert_from_extras'),
                 p.toolkit.get_validator('boolean_validator')
