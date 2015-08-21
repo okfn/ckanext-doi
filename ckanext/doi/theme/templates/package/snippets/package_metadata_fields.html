@@ -15,6 +15,6 @@
 {% block package_metadata_fields %}
     {{ form.input('doi_identifier', label=_('DOI'), id='field-doi_identifier', placeholder=_('e.g. 10.5072/FK2000000'), value=data.doi_identifier, error=errors.doi_identifier, classes=['control-medium']) }}
     {{ form.checkbox('manual_doi_identifier', label=_('Manually assign DOI'), id="field-manual_doi_identifier", checked=data.manual_doi_identifier, value='True') }}
-    <p class="help-block" data-module="doi-disable-field">To manually assign a DOI check &lsquo;Manually assign DOI&rsquo;. If &lsquo;Manually assign DOI&rsquo; is unchecked, a DOI will be automatically created for this dataset, and editing its value will be disabled.</p>
+    <p class="help-block" data-module="doi-disable-field">To manually assign a DOI check &lsquo;Manually assign DOI&rsquo;. If &lsquo;Manually assign DOI&rsquo; is unchecked, a DOI will be automatically created and metadata submitted for this dataset, and editing the DOI value will be disabled.</p>
     {{ super() }}
 {% endblock %}
