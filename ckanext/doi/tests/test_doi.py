@@ -5,6 +5,7 @@ from nose.tools import (assert_equal, assert_true,
 
 from ckan.tests import helpers
 from ckan.tests import factories
+import ckan.plugins.toolkit as toolkit
 
 from ckanext.doi.api import get_doi_api
 from ckanext.doi.api import ezid_api
@@ -107,17 +108,26 @@ class TestDOICreate(helpers.FunctionalTestBase):
         # mandatory field
         doi_lib.validate_metadata(metadata_dict)
 
+    def test_package_author_required(self):
+        '''Author is a required field, because DOIs require it.'''
+
+        assert_raises(toolkit.ValidationError, factories.Dataset)
+
     def test_doi_metadata_missing_author(self):
         '''Validating a DOI created from a package with no author will raise
         an exception.'''
-        pkg = factories.Dataset(auto_doi_identifier=True)
+
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author')
 
         doi = doi_lib.get_doi(pkg['id'])
+
+        # remove author value from pkg_dict before attempting validation
+        pkg['author'] = None
 
         # Build the metadata dict to pass to DataCite service
         metadata_dict = doi_lib.build_metadata(pkg, doi)
 
-        # No author provided when creating dataset, so raise exception
+        # No author in pkg_dict, so exception should be raised
         assert_raises(DOIMetadataException, doi_lib.validate_metadata,
                       metadata_dict)
 
