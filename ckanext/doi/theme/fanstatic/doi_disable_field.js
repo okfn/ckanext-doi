@@ -3,9 +3,9 @@
  */
 this.ckan.module('doi-disable-field', function ($, _) {
   return {
-    currentValue: false,
+    currentValue: true,
     options: {
-      checkbox: $('#field-manual_doi_identifier'),
+      checkbox: $('#field-auto_doi_identifier'),
       field: $('#field-doi_identifier'),
       currentValue: null
     },
@@ -19,10 +19,10 @@ this.ckan.module('doi-disable-field', function ($, _) {
       var value = this.options.checkbox.prop('checked');
       if (value) {
         this.options.field
-          .prop('readonly', false);
+          .prop('readonly', true);
       } else {
         this.options.field
-          .prop('readonly', true);
+          .prop('readonly', false);
       }
     }
   };

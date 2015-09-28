@@ -29,7 +29,7 @@ class TestDOICreate(helpers.FunctionalTestBase):
     def test_doi_auto_create_identifier(self):
         '''Test a DOI has been created with the package.'''
         # creating the package should also create a DOI instance
-        pkg = factories.Dataset(author='Ben', manual_doi_identifier=False)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True)
 
         # let's get it
         doi = doi_lib.get_doi(pkg['id'])
@@ -44,8 +44,8 @@ class TestDOICreate(helpers.FunctionalTestBase):
         assert_true(doi.published is None)
 
     def test_doi_not_created_when_manual_checked(self):
-        '''If manual_doi_identifier is true, don't create a doi'''
-        pkg = factories.Dataset(author='Ben', manual_doi_identifier=True)
+        '''If auto_doi_identifier is false, don't create a doi.'''
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=False)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -54,7 +54,7 @@ class TestDOICreate(helpers.FunctionalTestBase):
     def test_doi_auto_created_when_field_not_defined(self):
         '''On package creation, a DOI object should be created and
         doi_identifier field should be populated with the DOI id.'''
-        pkg = factories.Dataset(author='Ben', manual_doi_identifier=False)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True)
 
         retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
 
@@ -66,7 +66,7 @@ class TestDOICreate(helpers.FunctionalTestBase):
         '''On package creation, DOI object should be created with the
         doi_identifier field value. A passed doi_identifier is ignored.'''
         pkg = factories.Dataset(author='Ben', doi_identifier='example-doi-id',
-                                manual_doi_identifier=False)
+                                auto_doi_identifier=True)
 
         retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
 
@@ -78,9 +78,9 @@ class TestDOICreate(helpers.FunctionalTestBase):
 
     def test_doi_not_created_when_field_is_defined_manual_checked(self):
         '''On package creation, DOI object should not be created if
-        manual_doi_identifier is true.'''
+        auto_doi_identifier is false.'''
         pkg = factories.Dataset(author='Ben', doi_identifier='example-doi-id',
-                                manual_doi_identifier=True)
+                                auto_doi_identifier=False)
 
         retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
 
@@ -94,7 +94,7 @@ class TestDOICreate(helpers.FunctionalTestBase):
         '''
         Test the creation and validation of metadata
         '''
-        pkg = factories.Dataset(author='Ben', manual_doi_identifier=False)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -110,7 +110,7 @@ class TestDOICreate(helpers.FunctionalTestBase):
     def test_doi_metadata_missing_author(self):
         '''Validating a DOI created from a package with no author will raise
         an exception.'''
-        pkg = factories.Dataset(manual_doi_identifier=False)
+        pkg = factories.Dataset(auto_doi_identifier=True)
 
         doi = doi_lib.get_doi(pkg['id'])
 

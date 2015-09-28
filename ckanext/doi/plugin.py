@@ -65,7 +65,7 @@ class DOIPlugin(p.SingletonPlugin):
         @param pkg_dict:
         @return:
         '''
-        if not pkg_dict.get('manual_doi_identifier'):
+        if pkg_dict.get('auto_doi_identifier'):
             # create a doi and populate pkg.doi_identifier with it.
             doi = create_unique_identifier(pkg_dict['id'])
             self._update_pkg_doi(context, pkg_dict['id'], doi.identifier)
@@ -81,7 +81,7 @@ class DOIPlugin(p.SingletonPlugin):
 
         # We might be short circuiting the after_update
         if context.get('no_after_update') \
-           or pkg_dict.get('manual_doi_identifier'):
+           or not pkg_dict.get('auto_doi_identifier'):
             return pkg_dict
 
         package_id = pkg_dict['id']
@@ -177,7 +177,7 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
             'author': [
                 p.toolkit.get_validator('not_empty')
             ],
-            'manual_doi_identifier': [
+            'auto_doi_identifier': [
                 p.toolkit.get_validator('boolean_validator'),
                 p.toolkit.get_converter('convert_to_extras')
             ],
@@ -204,7 +204,7 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
             'author': [
                 p.toolkit.get_validator('not_empty')
             ],
-            'manual_doi_identifier': [
+            'auto_doi_identifier': [
                 p.toolkit.get_converter('convert_from_extras'),
                 p.toolkit.get_validator('boolean_validator')
             ],

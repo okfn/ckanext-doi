@@ -19,7 +19,7 @@ Renders a citation for a package
         </p>
 
         {% block citation_status %}
-            {% if not pkg_dict['manual_doi_identifier'] %}
+            {% if pkg_dict['auto_doi_identifier'] %}
                 {% if not pkg_dict['doi_status'] %}
                   <span class="dataset-private label label-inverse" title="This DOI has not yet been published"><i class="icon-lock"></i> Private DOI</span>
                     <small><i class="icon-exclamation-sign"></i> <strong>This DOI is not yet resolvable.</strong><br />It is available for use in manuscripts, and will be published when the Dataset is made public.</small>
