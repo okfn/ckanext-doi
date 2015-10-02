@@ -131,6 +131,95 @@ class TestDOICreate(helpers.FunctionalTestBase):
         assert_raises(DOIMetadataException, doi_lib.validate_metadata,
                       metadata_dict)
 
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    def test_doi_stuff(self):
+        my_user = factories.User()
+        # org owned by my_user
+        org = factories.Organization(user=my_user)
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                user=my_user, owner_org=org['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is not None)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    def test_doi_not_created_normal_user_no_owner_org_only_in_orgs(self):
+        '''A normal user can not create a doi from auto_doi_identifier if
+        doi_request_only_in_orgs=True'''
+        user = factories.User()
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                user=user)
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is None)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', False)
+    def test_doi_created_normal_user_no_owner_org_not_only_in_orgs(self):
+        '''A normal user can create a doi from auto_doi_identifier if
+        doi_request_only_in_orgs=False'''
+        user = factories.User()
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                user=user)
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is not None)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    def test_doi_create_org_admin_owner_org_only_in_orgs(self):
+        '''An org admin can create dois if doi_request_only_in_orgs=True'''
+        my_user = factories.User()
+        # org owned by my_user
+        org = factories.Organization(user=my_user)
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                user=my_user, owner_org=org['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is not None)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    @helpers.change_config('ckanext.doi.doi_request_roles_in_orgs', 'admin')
+    def test_doi_create_editor_not_allowed(self):
+        '''Editor role not allowed to create dois'''
+        my_user = factories.User()
+        editor = factories.User()
+        # org owned by my_user
+
+        other_users = [
+            {'name': editor['id'], 'capacity': 'editor'}
+        ]
+
+        org = factories.Organization(user=my_user, users=other_users)
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                user=editor, owner_org=org['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is None)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    @helpers.change_config('ckanext.doi.doi_request_roles_in_orgs', 'admin editor')
+    def test_doi_create_editor_allowed(self):
+        '''Editor role is allowed to create dois'''
+        my_user = factories.User()
+        editor = factories.User()
+        # org owned by my_user
+
+        other_users = [
+            {'name': editor['id'], 'capacity': 'editor'}
+        ]
+
+        org = factories.Organization(user=my_user, users=other_users)
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                user=editor, owner_org=org['id'])
+
+        doi = doi_lib.get_doi(pkg['id'])
+
+        assert_true(doi is not None)
+
 
 class TestDOIFieldsDisplay(helpers.FunctionalTestBase):
 

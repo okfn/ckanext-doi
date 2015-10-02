@@ -11,17 +11,19 @@ def doi_requester(key, data, errors, context):
     '''Requester must be authorized to request DOIs.'''
 
     user = context.get('user')
-
     # check whether user can request doi
-    if not can_request_doi(user, data) and data.get(('id',)):
+    if not can_request_doi(user, data):
+        log.info('User not able to request doi')
         # get the original pkg
-        pkg = toolkit.get_action('package_show')(
-            data_dict={'id': data[('id',)]})
-
-        # pass the original value to the data dict so it remains the same.
-        data[key] = pkg.get(key[0])
-        return
+        try:
+            pkg = toolkit.get_action('package_show')(
+                data_dict={'id': data[('id',)]})
+        except toolkit.ValidationError:
+            data[key] = None
+        else:
+            # pass the original value to the data dict so it remains the same.
+            data[key] = pkg.get(key[0])
     else:
-        log.info('user will be able to request doi')
+        log.info('user able to request doi')
 
     return

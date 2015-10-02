@@ -58,7 +58,8 @@ def can_request_doi(user, data):
         if user_obj['sysadmin']:
             return True
 
-    org_id = data.get('owner_org') or data.get('group_id', None)
+    org_id = data.get('owner_org') or data.get('group_id') \
+        or data.get(('owner_org',), None)
 
     # ckanext.doi.doi_request_only_in_orgs must be True, so we need a user and
     # an org
