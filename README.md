@@ -75,6 +75,15 @@ ckanext.doi.publisher =
 ckanext.doi.test_mode = True or False
 ckanext.doi.site_url =  # Defaults to ckan.site_url if not set 
 ckanext.doi.site_title = # Optional - site title to use in the citation - eg Natural History Museum Data Portal (data.nhm.ac.uk)
+
+# If true, DOI request fields will only be available to datasets made as part
+# of an organization.
+ckanext.doi.doi_request_only_in_orgs = true
+
+# A space separated list of roles within an organization that can request DOIs.
+# Only applies if ckanext.doi.doi_request_only_in_orgs is True. Default is
+# 'admin editor'
+ckanext.doi.doi_request_roles_in_orgs = admin
 ```
 
 Account name, password and prefix will be provided by your DataCite provider.

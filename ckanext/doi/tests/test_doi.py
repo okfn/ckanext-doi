@@ -30,7 +30,8 @@ class TestDOICreate(helpers.FunctionalTestBase):
     def test_doi_auto_create_identifier(self):
         '''Test a DOI has been created with the package.'''
         # creating the package should also create a DOI instance
-        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True,
+                                doi_identifier=None)
 
         # let's get it
         doi = doi_lib.get_doi(pkg['id'])
@@ -46,7 +47,8 @@ class TestDOICreate(helpers.FunctionalTestBase):
 
     def test_doi_not_created_when_manual_checked(self):
         '''If auto_doi_identifier is false, don't create a doi.'''
-        pkg = factories.Dataset(author='Ben', auto_doi_identifier=False)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=False,
+                                doi_identifier=None)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -55,7 +57,8 @@ class TestDOICreate(helpers.FunctionalTestBase):
     def test_doi_auto_created_when_field_not_defined(self):
         '''On package creation, a DOI object should be created and
         doi_identifier field should be populated with the DOI id.'''
-        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True,
+                                doi_identifier=None)
 
         retrieved_pkg = helpers.call_action('package_show', id=pkg['id'])
 
@@ -95,7 +98,8 @@ class TestDOICreate(helpers.FunctionalTestBase):
         '''
         Test the creation and validation of metadata
         '''
-        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True)
+        pkg = factories.Dataset(author='Ben', auto_doi_identifier=True,
+                                doi_identifier=None)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -117,7 +121,8 @@ class TestDOICreate(helpers.FunctionalTestBase):
         '''Validating a DOI created from a package with no author will raise
         an exception.'''
 
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author')
+        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
+                                doi_identifier=None)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -136,20 +141,22 @@ class TestDOICreate(helpers.FunctionalTestBase):
         my_user = factories.User()
         # org owned by my_user
         org = factories.Organization(user=my_user)
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
-                                user=my_user, owner_org=org['id'])
+        pkg = factories.Dataset(auto_doi_identifier=True, doi_identifier=None,
+                                author='My Author', user=my_user,
+                                owner_org=org['id'])
 
         doi = doi_lib.get_doi(pkg['id'])
 
         assert_true(doi is not None)
+        assert_true('10.5072' in doi.identifier)
 
     @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
     def test_doi_not_created_normal_user_no_owner_org_only_in_orgs(self):
         '''A normal user can not create a doi from auto_doi_identifier if
         doi_request_only_in_orgs=True'''
         user = factories.User()
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
-                                user=user)
+        pkg = factories.Dataset(auto_doi_identifier=True, doi_identifier=None,
+                                author='My Author', user=user)
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -160,12 +167,13 @@ class TestDOICreate(helpers.FunctionalTestBase):
         '''A normal user can create a doi from auto_doi_identifier if
         doi_request_only_in_orgs=False'''
         user = factories.User()
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
-                                user=user)
+        pkg = factories.Dataset(auto_doi_identifier=True, doi_identifier=None,
+                                author='My Author', user=user)
 
         doi = doi_lib.get_doi(pkg['id'])
 
         assert_true(doi is not None)
+        assert_true('10.5072' in doi.identifier)
 
     @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
     def test_doi_create_org_admin_owner_org_only_in_orgs(self):
@@ -173,12 +181,14 @@ class TestDOICreate(helpers.FunctionalTestBase):
         my_user = factories.User()
         # org owned by my_user
         org = factories.Organization(user=my_user)
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
-                                user=my_user, owner_org=org['id'])
+        pkg = factories.Dataset(auto_doi_identifier=True, doi_identifier=None,
+                                author='My Author', user=my_user,
+                                owner_org=org['id'])
 
         doi = doi_lib.get_doi(pkg['id'])
 
         assert_true(doi is not None)
+        assert_true('10.5072' in doi.identifier)
 
     @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
     @helpers.change_config('ckanext.doi.doi_request_roles_in_orgs', 'admin')
@@ -193,8 +203,9 @@ class TestDOICreate(helpers.FunctionalTestBase):
         ]
 
         org = factories.Organization(user=my_user, users=other_users)
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
-                                user=editor, owner_org=org['id'])
+        pkg = factories.Dataset(auto_doi_identifier=True, doi_identifier=None,
+                                author='My Author', user=editor,
+                                owner_org=org['id'])
 
         doi = doi_lib.get_doi(pkg['id'])
 
@@ -213,12 +224,14 @@ class TestDOICreate(helpers.FunctionalTestBase):
         ]
 
         org = factories.Organization(user=my_user, users=other_users)
-        pkg = factories.Dataset(auto_doi_identifier=True, author='My Author',
-                                user=editor, owner_org=org['id'])
+        pkg = factories.Dataset(auto_doi_identifier=True, doi_identifier=None,
+                                author='My Author', user=editor,
+                                owner_org=org['id'])
 
         doi = doi_lib.get_doi(pkg['id'])
 
         assert_true(doi is not None)
+        assert_true('10.5072' in doi.identifier)
 
 
 class TestDOIFieldsDisplay(helpers.FunctionalTestBase):

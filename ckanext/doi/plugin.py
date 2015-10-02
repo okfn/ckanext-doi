@@ -99,6 +99,7 @@ class DOIPlugin(p.SingletonPlugin):
         # creation, but subsequently deleted it.
         if not doi:
             doi = create_unique_identifier(pkg_dict['id'])
+            pkg_dict['doi_identifier'] = doi.identifier
 
         # ensure doi.identifier and pkg['doi_identifier'] are the same
         if doi.identifier != pkg_dict['doi_identifier']:
@@ -190,7 +191,6 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
                 p.toolkit.get_converter('convert_to_extras'),
             ],
             'doi_identifier': [
-                p.toolkit.get_validator('ignore_missing'),
                 p.toolkit.get_validator('doi_requester'),
                 p.toolkit.get_converter('convert_to_extras'),
             ]
@@ -218,8 +218,7 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
                 p.toolkit.get_validator('boolean_validator')
             ],
             'doi_identifier': [
-                p.toolkit.get_converter('convert_from_extras'),
-                p.toolkit.get_validator('ignore_missing')
+                p.toolkit.get_converter('convert_from_extras')
             ]
         })
         return schema
