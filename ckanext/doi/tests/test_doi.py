@@ -132,6 +132,11 @@ class TestDOICreate(helpers.FunctionalTestBase):
                       metadata_dict)
 
 
+class TestDOIRequestorValidator(helpers.FunctionalTestBase):
+    pass
+
+
+
 class TestDOIAPIInterface(object):
 
     def test_get_doi_api_returns_correct_default_api_interface(self):

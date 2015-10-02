@@ -8,7 +8,11 @@ from ckanext.doi.model import doi as doi_model
 from ckanext.doi.lib import (get_doi, publish_doi,
                              update_doi, create_unique_identifier,
                              get_site_url, build_metadata, validate_metadata)
-from ckanext.doi.helpers import package_get_year, now, get_site_title
+from ckanext.doi.helpers import (package_get_year,
+                                 now,
+                                 get_site_title,
+                                 can_request_doi_in_org)
+from ckanext.doi.validators import doi_requester
 
 get_action = logic.get_action
 
@@ -158,17 +162,19 @@ class DOIPlugin(p.SingletonPlugin):
         return {
             'package_get_year': package_get_year,
             'now': now,
-            'get_site_title': get_site_title
+            'get_site_title': get_site_title,
+            'can_request_doi_in_org': can_request_doi_in_org
         }
 
 
 class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
 
     '''
-    A drop-in plugin to add a DOI field to the dataset schema.
+    An IDatasetForm plugin to add a DOI field to the dataset schema.
     '''
 
     p.implements(p.IDatasetForm)
+    p.implements(p.IValidators)
 
     # IDatasetForm
 
@@ -178,12 +184,15 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
                 p.toolkit.get_validator('not_empty')
             ],
             'auto_doi_identifier': [
+                # p.toolkit.get_validator('ignore_missing'),
                 p.toolkit.get_validator('boolean_validator'),
-                p.toolkit.get_converter('convert_to_extras')
+                p.toolkit.get_validator('doi_requester'),
+                p.toolkit.get_converter('convert_to_extras'),
             ],
             'doi_identifier': [
                 p.toolkit.get_validator('ignore_missing'),
-                p.toolkit.get_converter('convert_to_extras')
+                p.toolkit.get_validator('doi_requester'),
+                p.toolkit.get_converter('convert_to_extras'),
             ]
         })
         return schema
@@ -220,3 +229,10 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
 
     def package_types(self):
         return []
+
+    # IValidators
+
+    def get_validators(self):
+        return {
+            'doi_requester': doi_requester,
+            }

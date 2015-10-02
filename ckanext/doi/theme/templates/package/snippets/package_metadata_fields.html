@@ -13,8 +13,12 @@
 {% endblock %}
 
 {% block package_metadata_fields %}
-    {{ form.input('doi_identifier', label=_('DOI'), id='field-doi_identifier', placeholder=_('e.g. 10.5072/FK2000000'), value=data.doi_identifier, error=errors.doi_identifier, classes=['control-medium']) }}
-    {{ form.checkbox('auto_doi_identifier', label=_('Automatically assign DOI'), id="field-auto_doi_identifier", checked=data.auto_doi_identifier or false, value='True') }}
-    <p class="help-block" data-module="doi-disable-field">To automatically assign a DOI check &lsquo;Automatically assign DOI&rsquo;. If checked, a DOI will be created and metadata submitted for this dataset, and editing the DOI value will be disabled.</p>
+    {# data.owner_org for an existing dataset, data.group_id for creating a new dataset with in an org. #}
+    {% if h.can_request_doi_in_org(data.owner_org) or h.can_request_doi_in_org(data.group_id) %}
+        {{ form.input('doi_identifier', label=_('DOI'), id='field-doi_identifier', placeholder=_('e.g. 10.5072/FK2000000'), value=data.doi_identifier, error=errors.doi_identifier, classes=['control-medium']) }}
+        {{ form.checkbox('auto_doi_identifier', label=_('Automatically assign DOI'), id="field-auto_doi_identifier", checked=data.auto_doi_identifier or false, value='True') }}
+        <p class="help-block" data-module="doi-disable-field">To automatically assign a DOI check &lsquo;Automatically assign DOI&rsquo;. If checked, a DOI will be created and metadata submitted for this dataset, and editing the DOI value will be disabled.</p>
+    {% endif %}
+
     {{ super() }}
 {% endblock %}
