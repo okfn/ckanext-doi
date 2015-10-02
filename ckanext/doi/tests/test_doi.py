@@ -132,9 +132,63 @@ class TestDOICreate(helpers.FunctionalTestBase):
                       metadata_dict)
 
 
-class TestDOIRequestorValidator(helpers.FunctionalTestBase):
-    pass
+class TestDOIFieldsDisplay(helpers.FunctionalTestBase):
 
+    '''Tests for when to display the DOI fields in the dataset form'''
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', False)
+    def test_doi_fields_new_unowned_dataset_only_in_orgs_false(self):
+        '''The doi fields will display for unowned datasets when
+        doi_request_only_in_orgs is False.'''
+        app = self._get_test_app()
+        response = app.get(url=toolkit.url_for(controller='package',
+                                               action='new'))
+
+        assert_true('doi_identifier' in response.forms['dataset-edit'].fields)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    def test_doi_fields_new_unowned_dataset_only_in_orgs_true(self):
+        '''The doi fields will not display for unowned datasets when
+        doi_request_only_in_orgs is True.'''
+        app = self._get_test_app()
+        response = app.get(url=toolkit.url_for(controller='package',
+                                               action='new'))
+
+        assert_true('doi_identifier' not in
+                    response.forms['dataset-edit'].fields)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', False)
+    def test_doi_fields_new_owned_dataset_only_in_orgs_false(self):
+        '''DOI fields will display for owned datasets (datasets made as part
+        of an org) when doi_request_only_in_orgs is False.'''
+        app = self._get_test_app()
+        sysadmin = factories.Sysadmin()
+
+        org = factories.Organization()
+        url = '{0}?group={1}'.format(toolkit.url_for(controller='package',
+                                                     action='new'),
+                                     org['id'])
+        env = {'REMOTE_USER': sysadmin['name'].encode('ascii')}
+        response = app.get(url=url, extra_environ=env)
+
+        assert_true('doi_identifier' in response.forms['dataset-edit'].fields)
+
+    @helpers.change_config('ckanext.doi.doi_request_only_in_orgs', True)
+    def test_doi_fields_new_owned_dataset_only_in_orgs_true(self):
+        '''DOI fields will display for owned datasets (datasets made as part
+        of an org) when doi_request_only_in_orgs is True.'''
+        app = self._get_test_app()
+        sysadmin = factories.Sysadmin()
+
+        org = factories.Organization()
+        url = '{0}?group={1}'.format(toolkit.url_for(controller='package',
+                                                     action='new'),
+                                     org['id'])
+        env = {'REMOTE_USER': sysadmin['name'].encode('ascii')}
+        response = app.get(url=url, extra_environ=env)
+
+        assert_true('dataset-edit' in response.forms)
+        assert_true('doi_identifier' in response.forms['dataset-edit'].fields)
 
 
 class TestDOIAPIInterface(object):

@@ -41,28 +41,35 @@ def now():
     return datetime.now()
 
 
-def can_request_doi_in_org(org):
+def can_request_doi(user, data):
     '''
     Determine whether the user can request a doi for a package owned by an
     organization, based on roles defined in the config.
     '''
 
-    user = toolkit.c.user
-    user_object = toolkit.c.userobj
+    # If we can request doi outside of orgs, allow everyone to request.
+    if config.get('ckanext.doi.doi_request_only_in_orgs') is False:
+        return True
+
+    org_id = data.get('owner_org') or data.get('group_id', None)
+
+    if user:
+        user_obj = toolkit.get_action('user_show')(
+            data_dict={'id': user})
+        # Sysadmins can do anything
+        if user_obj['sysadmin']:
+            return True
 
     # We need a user and org
-    if not user or not org:
+    if not user or not org_id:
         return False
-    # Sysadmins can do anything
-    if user_object and user_object.sysadmin:
-        return True
 
     # Roles authorized if ckanext.doi.doi_request_roles_in_orgs if not defined
     # in config.
     default_roles = "admin editor"
 
     # Is the user's role in the allowed roles list?
-    user_role = authz.users_role_for_group_or_org(org, user)
+    user_role = authz.users_role_for_group_or_org(org_id, user)
     if user_role in config.get("ckanext.doi.doi_request_roles_in_orgs",
                                default_roles).split():
         return True

@@ -11,7 +11,7 @@ from ckanext.doi.lib import (get_doi, publish_doi,
 from ckanext.doi.helpers import (package_get_year,
                                  now,
                                  get_site_title,
-                                 can_request_doi_in_org)
+                                 can_request_doi)
 from ckanext.doi.validators import doi_requester
 
 get_action = logic.get_action
@@ -163,7 +163,7 @@ class DOIPlugin(p.SingletonPlugin):
             'package_get_year': package_get_year,
             'now': now,
             'get_site_title': get_site_title,
-            'can_request_doi_in_org': can_request_doi_in_org
+            'can_request_doi': can_request_doi
         }
 
 
