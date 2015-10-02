@@ -43,15 +43,13 @@ def now():
 
 def can_request_doi(user, data):
     '''
-    Determine whether the user can request a doi for a package owned by an
-    organization, based on roles defined in the config.
+    Determine whether the user can request a doi for a package.
     '''
 
     # If we can request doi outside of orgs, allow everyone to request.
-    if config.get('ckanext.doi.doi_request_only_in_orgs') is False:
+    if toolkit.asbool(config.get('ckanext.doi.doi_request_only_in_orgs')) \
+       is False:
         return True
-
-    org_id = data.get('owner_org') or data.get('group_id', None)
 
     if user:
         user_obj = toolkit.get_action('user_show')(
@@ -60,7 +58,10 @@ def can_request_doi(user, data):
         if user_obj['sysadmin']:
             return True
 
-    # We need a user and org
+    org_id = data.get('owner_org') or data.get('group_id', None)
+
+    # ckanext.doi.doi_request_only_in_orgs must be True, so we need a user and
+    # an org
     if not user or not org_id:
         return False
 

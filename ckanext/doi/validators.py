@@ -1,11 +1,9 @@
 import ckan.plugins.toolkit as toolkit
-import ckan.lib.navl.dictization_functions as df
 from ckanext.doi.helpers import can_request_doi
 
 import logging
 log = logging.getLogger(__name__)
 
-Invalid = df.Invalid
 _ = toolkit._
 
 
