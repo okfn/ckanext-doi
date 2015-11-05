@@ -1,3 +1,6 @@
+import os
+import json
+import inspect
 import logging
 
 import ckan.plugins as p
@@ -28,6 +31,21 @@ class DOIPlugin(p.SingletonPlugin):
     p.implements(p.IPackageController, inherit=True)
     p.implements(p.ITemplateHelpers, inherit=True)
 
+    def _load_json_module_path(self, json_path):
+        '''
+        Given a path like "ckanext.my_plugin:doi_prefixes.json" find the
+        second part relative to the import path of the first
+        '''
+        module, file_name = json_path.split(':', 1)
+        try:
+            # __import__ has an odd signature
+            m = __import__(module, fromlist=[''])
+        except ImportError:
+            return
+        p = os.path.join(os.path.dirname(inspect.getfile(m)), file_name)
+        if os.path.exists(p):
+            return json.load(open(p))
+
     # IConfigurable
 
     def configure(self, config):
@@ -35,11 +53,18 @@ class DOIPlugin(p.SingletonPlugin):
         Called at the end of CKAN setup.
         Create DOI table
         '''
-
         if model.package_table.exists():
             doi_model.doi_table.create(checkfirst=True)
 
     # IConfigurer
+
+    def _load_prefixes(self, config):
+        '''Load the contents of the file found at the `prefix_choices` option
+        into the `_prefixes` property of the DOIPlugin class.'''
+        DOIPlugin._prefixes = None
+        config_prefixes = config.get('ckanext.doi.prefix_choices', None)
+        if config_prefixes:
+            DOIPlugin._prefixes = self._load_json_module_path(config_prefixes)
 
     def update_config(self, config):
         # Add templates
@@ -48,6 +73,9 @@ class DOIPlugin(p.SingletonPlugin):
         p.toolkit.add_public_directory(config, 'theme/public')
 
         p.toolkit.add_resource('theme/fanstatic', 'doi')
+
+        # if ckanext.doi.prefix_choices ignore doi.prefix and load the json
+        self._load_prefixes(config)
 
     # IPackageController
 
