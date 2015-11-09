@@ -77,3 +77,38 @@ def can_request_doi(user, data):
         return True
 
     return False
+
+
+def get_prefixes():
+    '''Return a list of prefixes available for this ckan instance in the format:
+
+        [{'text':label, 'value': "101234/FN"}, ...]
+    '''
+    multiple = _get_multiple_prefixes()
+    if multiple:
+        prefixes = []
+        for p in multiple:
+            prefix = '{0}/{1}'.format(p['prefix'], p['shoulder'])
+            prefixes.append({'text': '{0} ({1})'.format(p['label'], prefix),
+                             'value': prefix})
+    else:
+        prefixes = [{'text': None, 'value': _get_single_prefix()}]
+    return prefixes
+
+
+def _get_single_prefix():
+    '''Put together the single prefix and shoulder as defined in the config'''
+    prefix = config.get('ckanext.doi.prefix')
+    shoulder = config.get('ckanext.doi.shoulder')
+    if prefix and shoulder:
+        return "{0}/{1}".format(prefix, shoulder)
+    else:
+        return prefix
+
+
+def _get_multiple_prefixes():
+    '''Get the multiple presets property from the single DOIPlugin
+    instance.'''
+    from ckanext.doi.plugin import DOIPlugin as p
+    if p.__instance__:
+        return p._prefixes

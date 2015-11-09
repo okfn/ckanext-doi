@@ -14,3 +14,11 @@
     margin-left: 0;
   }
 }
+
+#doi-choices .controls input[type=radio] {
+  top: -1px;
+  margin-right: 10px;
+}
+#doi-choices .controls label {
+  font-weight: normal;
+}

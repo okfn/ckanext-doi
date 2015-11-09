@@ -27,3 +27,12 @@ def doi_requester(key, data, errors, context):
         log.info('user able to request doi')
 
     return
+
+
+def doi_prefix(key, data, errors, context):
+    '''Make sure prefix isn't missing, if auto_doi_identifier is True.'''
+
+    if data.get(('auto_doi_identifier',)):
+        toolkit.get_validator('not_empty')(key, data, errors, context)
+    else:
+        toolkit.get_validator('ignore_missing')(key, data, errors, context)

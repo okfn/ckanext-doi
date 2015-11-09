@@ -5,17 +5,18 @@ import logging
 
 import ckan.plugins as p
 import ckan.logic as logic
-from ckan.lib import helpers as h
 from ckan import model
 from ckanext.doi.model import doi as doi_model
-from ckanext.doi.lib import (get_doi, publish_doi,
+from ckanext.doi.lib import (get_doi, delete_doi, publish_doi,
                              update_doi, create_unique_identifier,
                              get_site_url, build_metadata, validate_metadata)
 from ckanext.doi.helpers import (package_get_year,
                                  now,
                                  get_site_title,
-                                 can_request_doi)
-from ckanext.doi.validators import doi_requester
+                                 can_request_doi,
+                                 get_prefixes
+                                 )
+from ckanext.doi.validators import doi_requester, doi_prefix
 
 get_action = logic.get_action
 
@@ -99,7 +100,8 @@ class DOIPlugin(p.SingletonPlugin):
         '''
         if pkg_dict.get('auto_doi_identifier'):
             # create a doi and populate pkg.doi_identifier with it.
-            doi = create_unique_identifier(pkg_dict['id'])
+            prefix = pkg_dict.get('doi_prefix')
+            doi = create_unique_identifier(pkg_dict['id'], prefix)
             self._update_pkg_doi(context, pkg_dict['id'], doi.identifier)
 
     def after_update(self, context, pkg_dict):
@@ -111,27 +113,32 @@ class DOIPlugin(p.SingletonPlugin):
         @return: pkg_dict
         '''
 
+        package_id = pkg_dict['id']
+        # Load the local DOI
+        doi = get_doi(package_id)
+
+        # If we're not auto managing the doi, but there is a DOI object
+        # associated with the package, delete it.
+        if not pkg_dict.get('auto_doi_identifier') and doi:
+            delete_doi(package_id)
+            doi = None
+
         # We might be short circuiting the after_update
         if context.get('no_after_update') \
            or not pkg_dict.get('auto_doi_identifier'):
             return pkg_dict
-
-        package_id = pkg_dict['id']
-
-        # Load the local DOI
-        doi = get_doi(package_id)
 
         # If we don't have a DOI, create one.
         # This could happen if the DOI module is enabled after a dataset
         # has been created, or if a user has added their own on dataset
         # creation, but subsequently deleted it.
         if not doi:
-            doi = create_unique_identifier(pkg_dict['id'])
-            pkg_dict['doi_identifier'] = doi.identifier
+            prefix = pkg_dict.get('doi_prefix')
+            doi = create_unique_identifier(package_id, prefix)
 
         # ensure doi.identifier and pkg['doi_identifier'] are the same
         if doi.identifier != pkg_dict['doi_identifier']:
-            self._update_pkg_doi(context, pkg_dict['id'], doi.identifier)
+            self._update_pkg_doi(context, package_id, doi.identifier)
 
         # Is this active and public? If so we need to make sure we have an
         # active DOI
@@ -166,7 +173,6 @@ class DOIPlugin(p.SingletonPlugin):
                 if cmp(orig_metadata_dict, metadata_dict) != 0:
                     # Not the same, so we want to update the metadata
                     update_doi(package_id, **metadata_dict)
-                    h.flash_success('DOI metadata updated')
 
                 # TODO: If editing a dataset older than 5 days, create DOI
                 # revision
@@ -174,7 +180,6 @@ class DOIPlugin(p.SingletonPlugin):
             # New DOI - publish to datacite
             else:
                 publish_doi(package_id, **metadata_dict)
-                h.flash_success('DOI created')
 
         return pkg_dict
 
@@ -192,7 +197,8 @@ class DOIPlugin(p.SingletonPlugin):
             'package_get_year': package_get_year,
             'now': now,
             'get_site_title': get_site_title,
-            'can_request_doi': can_request_doi
+            'can_request_doi': can_request_doi,
+            'get_doi_prefixes': get_prefixes
         }
 
 
@@ -221,6 +227,10 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
             'doi_identifier': [
                 p.toolkit.get_validator('doi_requester'),
                 p.toolkit.get_converter('convert_to_extras'),
+            ],
+            'doi_prefix': [
+                p.toolkit.get_validator('doi_prefix'),
+                p.toolkit.get_converter('convert_to_extras')
             ]
         })
         return schema
@@ -247,6 +257,9 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
             ],
             'doi_identifier': [
                 p.toolkit.get_converter('convert_from_extras')
+            ],
+            'doi_prefix': [
+                p.toolkit.get_converter('convert_from_extras')
             ]
         })
         return schema
@@ -262,4 +275,5 @@ class DOIDatasetPlugin(p.SingletonPlugin, p.toolkit.DefaultDatasetForm):
     def get_validators(self):
         return {
             'doi_requester': doi_requester,
+            'doi_prefix': doi_prefix
             }

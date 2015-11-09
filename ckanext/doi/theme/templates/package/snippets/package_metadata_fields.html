@@ -17,6 +17,20 @@
         {{ form.input('doi_identifier', label=_('DOI'), id='field-doi_identifier', placeholder=_('e.g. 10.5072/FK2000000'), value=data.doi_identifier, error=errors.doi_identifier, classes=['control-medium']) }}
         {{ form.checkbox('auto_doi_identifier', label=_('Automatically assign DOI'), id="field-auto_doi_identifier", checked=data.auto_doi_identifier or false, value='True') }}
         <p class="help-block" data-module="doi-disable-field">To automatically assign a DOI check &lsquo;Automatically assign DOI&rsquo;. If checked, a DOI will be created and metadata submitted for this dataset, and editing the DOI value will be disabled.</p>
+
+        {% set prefixes = h.get_doi_prefixes() %}
+        {% if prefixes|count > 1  %}
+            <div class="control-group" id="doi-choices" data-module="doi-reveal-choices" {% if data.auto_doi_identifier == False %}style="display:none"{% endif %}>
+                <div class="controls">
+                {% for p in prefixes %}
+                    {% set checked = (p['value'] == data.doi_prefix) %}
+                    {{ h.radio(name='doi_prefix', value=p['value'], checked=checked, label=_(p['text'])) }}
+                {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            {{ form.hidden('doi_prefix', prefixes[0]['value']) }}
+        {% endif %}
     {% endif %}
 
     {{ super() }}

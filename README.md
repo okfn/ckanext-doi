@@ -8,7 +8,7 @@ CKAN extension for assigning a digital object identifier (DOI) to datasets, usin
 
 When a new dataset is created it is assigned a new DOI. This DOI will be in the format:
  
-http://dx.doi.org/[prefix]/[random 7 digit integer]
+`http://dx.doi.org/[prefix]/[random 7 digit integer]`
 
 If the new dataset is active and public, the DOI and metadata will be registered with EZID.
  
@@ -67,10 +67,14 @@ It is recommended plugins implementing DOIs add additional validation checks to 
 Configuration
 -------------
 
-```python
+```ini
 ckanext.doi.account_name =
 ckanext.doi.account_password =
-ckanext.doi.prefix = 
+# if offering a single prefix and shoulder
+ckanext.doi.prefix = 10.5072
+ckanext.doi.shoulder = FK2
+# or multiple prefixes and shoulders can be defined in a .json file (in module-path:file format)
+ckanext.doi.prefix_choices = ckanext.doi.prefixes:my-prefixes.json
 ckanext.doi.publisher = 
 ckanext.doi.test_mode = True or False
 ckanext.doi.site_url =  # Defaults to ckan.site_url if not set 
@@ -90,17 +94,44 @@ Account name, password and prefix will be provided by your DataCite provider.
  
 Publisher is the name of the publishing institution - eg: Natural History Museum.
 
+If only a single prefix and shoulder is available to dataset authors, this can be set with `ckanext.doi.prefix`, e.g.
+
+```ini
+ckanext.doi.prefix = 10.5072
+ckanext.doi.shoulder = FK2
+```
+
+If multiple prefixes and/or shoulders are available, these can be defined in a separate .json file, which should be located in the directory `ckanext/doi/prefixes/`, defined by the `ckanext.doi.prefix_choices` setting. The file should be formatted like the following:
+
+```json
+[
+    {
+        "label": "My Organization's Open Data Dept",
+        "prefix": "10.5072",
+        "shoulder": "D1"
+    },
+    {
+        "label": "My Organization's Science Dept",
+        "prefix": "10.5072",
+        "shoulder": "SC1"
+    }
+]
+```
+
+These options will be available to choose as prefixes when automatically assigning a DOI to a dataset.
+
+**Note**: If `ckanext.doi.prefix_choices` is present, `ckanext.doi.prefix` and `ckanext.doi.shoulder` will be ignored.
+
 The site URL is used to build the link back to the dataset:
 
 http://[site_url]/datatset/package_id
 
 If site_url is not set, ckan.site_url will be used instead.
 
-
-If test mode is set to true, the DOIs will use the EZID test prefix 10.5072/FR2
+If test mode is set to true, the DOIs will use the EZID test prefix 10.5072/FK2
 
 To delete all test prefixes, use the command:
 
-```python
+```sh
 paster doi delete-tests -c /etc/ckan/default/development.ini
 ```

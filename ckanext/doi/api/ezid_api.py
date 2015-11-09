@@ -49,9 +49,10 @@ class EzidAPI(object):
         return r
 
     def make_identifier_id(self):
-        '''Make an identifier in the form 'FK20000000' '''
-        prefix = 'FK2' if ckanext.doi.api.get_test_mode() else ''
-        return '{1}{0:07}'.format(random.randint(1, 100000), prefix)
+        '''Make an identifier in the form '0000000' '''
+        # prefix = 'FK2' if ckanext.doi.api.get_test_mode() else ''
+        # return '{1}{0:07}'.format(random.randint(1, 100000), prefix)
+        return '{0:07}'.format(random.randint(1, 100000))
 
 
 class DOIEzidAPI(EzidAPI, MetadataToDataCiteXmlMixin):

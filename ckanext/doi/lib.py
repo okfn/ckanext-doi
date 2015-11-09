@@ -28,6 +28,13 @@ from ckanext.doi.helpers import package_get_year
 log = getLogger(__name__)
 
 
+def _prepare_prefix(prefix):
+    '''Ensure prefix has at least one '/' '''
+    if prefix.count('/') == 0:
+        prefix = prefix + '/'
+    return prefix
+
+
 def create_doi_from_identifier(package_id, identifier):
     '''Can be called when an identifier has already been created elsewhere.
     Does not ensure the identifier is unique'''
@@ -37,7 +44,7 @@ def create_doi_from_identifier(package_id, identifier):
     return doi
 
 
-def create_unique_identifier(package_id):
+def create_unique_identifier(package_id, prefix):
     '''
     Create a unique identifier, using the prefix and a random number:
     10.5072/0044634
@@ -47,6 +54,13 @@ def create_unique_identifier(package_id):
     '''
     doi_api = get_doi_api()
 
+    # validate prefix here prefix must be defined in the ini file, either
+    # ckanext.doi.prefix and ckanext.doi.shoulder, or in
+    # ckanext.doi.prefix_choices.
+
+    # If prefix doesn't have at least one `/`, add one to the end
+    prefix = _prepare_prefix(prefix)
+
     while True:
         # the api provider may have a make_identifier_id method, try it first,
         # then fall back to default.
@@ -55,7 +69,8 @@ def create_unique_identifier(package_id):
         except AttributeError:
             identifier_id = '{0:07}'.format(random.randint(1, 100000))
 
-        identifier = os.path.join(get_prefix(), identifier_id)
+        # identifier = os.path.join(get_prefix(), identifier_id)
+        identifier = prefix + identifier_id
 
         # Check this identifier doesn't exist in the table
         if not Session.query(DOI).filter(DOI.identifier == identifier).count():
@@ -131,6 +146,13 @@ def get_doi(package_id):
     return doi
 
 
+def delete_doi(package_id):
+    '''Delete the doi associated with a package_id'''
+    doi = Session.query(DOI).filter(DOI.package_id==package_id).first()
+    Session.delete(doi)
+    Session.commit()
+
+
 def get_site_url():
     '''
     Get the site URL
@@ -146,10 +168,9 @@ def get_site_url():
 
 
 def build_metadata(pkg_dict, doi):
-
-    # Build the datacite metadata - all of these are core CKAN fields which should
-    # be the same across all CKAN sites
-    # This builds a dictionary keyed by the datacite metadata xml schema
+    # Build the datacite metadata - all of these are core CKAN fields which
+    # should be the same across all CKAN sites This builds a dictionary keyed
+    # by the datacite metadata xml schema
     metadata_dict = {
         'identifier': doi.identifier,
         'title': pkg_dict['title'],
@@ -180,7 +201,7 @@ def build_metadata(pkg_dict, doi):
         # Otherwise use the tags list itself
         metadata_dict['subject'] = list(set([tag['name'] if isinstance(tag, dict) else tag for tag in pkg_dict['tags']])).sort()
 
-    if pkg_dict['license_id'] != 'notspecified':
+    if pkg_dict.get('license_id', 'notspecified') != 'notspecified':
 
         licenses = model.Package.get_license_options()
 
